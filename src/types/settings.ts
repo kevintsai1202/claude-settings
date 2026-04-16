@@ -79,8 +79,8 @@ export interface EnvEntry {
 }
 
 // ─── 基本設定 ──────────────────────────────────────────────
-/** 努力等級 */
-export type EffortLevel = 'low' | 'medium' | 'high';
+/** 努力等級（max 為 Claude 4.7 起新增的最高推理等級） */
+export type EffortLevel = 'low' | 'medium' | 'high' | 'max';
 
 /** 更新通道 */
 export type UpdateChannel = 'stable' | 'latest';

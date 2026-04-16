@@ -16,7 +16,9 @@ import './TabContent.css';
 
 // 可選的 Claude 模型（含別名與精確 ID，允許自訂輸入）
 const MODEL_OPTIONS = [
-  { value: 'claude-opus-4-6',         label: 'claude-opus-4-6',         hint: 'Opus 4.6 最新' },
+  { value: 'claude-opus-4-7',         label: 'claude-opus-4-7',         hint: 'Opus 4.7 最新' },
+  { value: 'claude-opus-4-7[1m]',     label: 'claude-opus-4-7[1m]',     hint: 'Opus 4.7（1M context）' },
+  { value: 'claude-opus-4-6',         label: 'claude-opus-4-6',         hint: 'Opus 4.6' },
   { value: 'claude-sonnet-4-6',       label: 'claude-sonnet-4-6',       hint: 'Sonnet 4.6' },
   { value: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4-5-20251001', hint: 'Haiku 4.5' },
   { value: 'opus',                    label: 'opus',                    hint: '別名' },
@@ -88,11 +90,11 @@ const BasicSettings: React.FC = () => {
         />
       </div>
 
-      {/* Effort Level */}
+      {/* Effort Level（max 為 Claude 4.7 起新增） */}
       <div className="form-row">
         <label className="form-label">Effort Level</label>
         <div className="radio-group">
-          {(['low', 'medium', 'high'] as EffortLevel[]).map((level) => (
+          {(['low', 'medium', 'high', 'max'] as EffortLevel[]).map((level) => (
             <label key={level} className="radio-label">
               <input
                 type="radio"

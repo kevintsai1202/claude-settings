@@ -1,0 +1,62 @@
+name: Release
+
+# 觸發方式：
+#   1. Push 形如 v*（例：v3.0.1）的 tag → 自動建置並建立 draft release
+#   2. 手動從 GitHub Actions 頁面點 "Run workflow"（workflow_dispatch）
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write  # tauri-action 需要此權限來建立 release 與上傳 asset
+
+    steps:
+      # 取得原始碼（含 tag 資訊）
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node 環境（前端打包用，快取 npm 以加速）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Rust toolchain（Tauri 後端必備）
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Cargo build 結果快取（第一次約 10–15 分鐘，後續 <5 分鐘）
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # 安裝 npm 依賴（ci 比 install 更嚴格，要求 lockfile 完全同步）
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # 呼叫 tauri-action：
+      #   - 會自動執行 npm run build（由 tauri.conf.json.build.beforeBuildCommand 指定）
+      #   - 然後 cargo build release + 產生 NSIS(.exe) 與 MSI(.msi) 安裝檔
+      #   - 最後建立 draft release 並上傳產物
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Claude Settings Manager ${{ github.ref_name }}'
+          releaseBody: |
+            ## 安裝檔下載
+            - `.msi` — Windows MSI 安裝程式（企業部署建議）
+            - `.exe` — NSIS 安裝程式（一般使用者建議）
+
+            請先將 draft release 內容審閱後再 publish。
+          releaseDraft: true
+          prerelease: false

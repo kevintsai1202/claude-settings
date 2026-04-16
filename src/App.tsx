@@ -4,6 +4,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { Settings, Sun, Moon, Save, Undo2 } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import Sidebar from './components/Sidebar/Sidebar';
 import TabBar from './components/TabBar/TabBar';
 import BasicSettings from './components/tabs/BasicSettings';
@@ -28,6 +29,9 @@ import { useResourceLoader } from './hooks/useResourceLoader';
 import { useTheme } from './hooks/useTheme';
 import './App.css';
 import type { SettingsLayer } from './types/settings';
+
+// 專案 GitHub 儲存庫網址（點擊 Header 圖示在系統瀏覽器開啟）
+const GITHUB_REPO_URL = 'https://github.com/kevintsai1202/claude-settings';
 
 // Tab 元件對照表
 const TAB_COMPONENTS: Record<string, React.FC> = {
@@ -135,7 +139,7 @@ const App: React.FC = () => {
             <Settings size={16} />
           </span>
           <span className="app-header__title">Claude Settings Manager</span>
-          <span className="app-header__version">v3.0.0</span>
+          <span className="app-header__version">v3.0.1</span>
         </div>
 
         <div className="app-header__right">
@@ -171,6 +175,24 @@ const App: React.FC = () => {
           >
             <Save size={13} />
             <span>儲存全部{dirtyCount > 0 ? ` (${dirtyCount})` : ''}</span>
+          </button>
+
+          {/* GitHub 儲存庫連結（使用 Tauri opener 在系統瀏覽器開啟） */}
+          <button
+            className="theme-toggle"
+            onClick={() => { void openUrl(GITHUB_REPO_URL); }}
+            title="在 GitHub 開啟專案儲存庫"
+            aria-label="GitHub Repository"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+            </svg>
           </button>
 
           {/* 日夜模式切換 */}

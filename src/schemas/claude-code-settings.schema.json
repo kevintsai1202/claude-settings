@@ -9,8 +9,8 @@
     },
     "effortLevel": {
       "type": "string",
-      "enum": ["low", "medium", "high"],
-      "description": "推理努力等級"
+      "enum": ["low", "medium", "high", "max"],
+      "description": "推理努力等級（max 為 Claude 4.7 起新增的最高等級）"
     },
     "availableModels": {
       "type": "array",
