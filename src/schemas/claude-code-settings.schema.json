@@ -223,7 +223,9 @@
       "type": "boolean"
     },
     "extraKnownMarketplaces": {
-      "type": "array"
+      "type": "object",
+      "description": "額外已知 marketplace 設定（name → source config）",
+      "additionalProperties": true
     },
     "hooks": {
       "type": "object",
@@ -360,6 +362,33 @@
       },
       "additionalProperties": false
     },
+    "statusLine": {
+      "type": "object",
+      "description": "自訂 Claude Code 底部狀態列",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["command"],
+          "description": "command：執行命令並顯示 stdout（Claude Code 2.1.x 僅支援 command 模式）"
+        },
+        "command": {
+          "type": "string",
+          "description": "執行的 shell 命令，透過 stdin 接收 session JSON，stdout 輸出即為狀態列文字"
+        },
+        "padding": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "狀態列左右兩側的空白字元數"
+        },
+        "refreshInterval": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "每 N 秒重新執行命令（僅 command 模式有效）"
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
     "apiKeyHelper": { "type": "string" },
     "awsAuthRefresh": { "type": "string" },
     "awsCredentialExport": { "type": "string" },
@@ -372,7 +401,15 @@
     },
     "pluginTrustMessage": { "type": "string" },
     "feedbackSurveyRate": { "type": "number" },
-    "disableDeepLinkRegistration": { "type": "boolean" }
+    "disableDeepLinkRegistration": { "type": "boolean" },
+    "skipDangerousModePermissionPrompt": {
+      "type": "boolean",
+      "description": "略過危險模式（bypassPermissions）的確認提示"
+    },
+    "skipAutoPermissionPrompt": {
+      "type": "boolean",
+      "description": "略過 auto 模式的權限確認提示"
+    }
   },
   "definitions": {
     "hookEntry": {

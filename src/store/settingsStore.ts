@@ -1,17 +1,22 @@
 /**
- * 全局狀態管理（Zustand）
- * 統一管理各層設定檔、專案目錄、當前 Tab、CLAUDE.md 內容
+ * 全局狀態管理（Zustand）—— v3.0 Draft Mode
+ * 所有檔案編輯都以 draft 方式暫存於 store，透過 commitAll() 才會真正寫入磁碟
+ * 支援單步 undo（restore previousData/previousContent snapshot）
  */
 import { create } from 'zustand';
 import type {
   AppState,
   ClaudeSettings,
   GlobalSettings,
-  GlobalSettingsFile,
   SettingsLayer,
   TabId,
   FileStatus,
   SettingsFile,
+  AgentFile,
+  CommandFile,
+  OutputStyleFile,
+  SkillFile,
+  ClaudeMdEntry,
 } from '../types/settings';
 
 // 建立空白的設定檔物件
@@ -21,6 +26,8 @@ const emptyFile = (layer: SettingsLayer, path: string): SettingsFile => ({
   status: 'missing',
   data: null,
   raw: '',
+  dirty: false,
+  previousData: undefined,
 });
 
 // 各層設定檔的預設路徑（Windows，使用者目錄）
@@ -32,19 +39,12 @@ interface AppActions {
   /** 設定目前選取的 Tab */
   setActiveTab: (tab: TabId) => void;
 
-  /** 更新全域設定檔（~/.claude.json）資料 */
-  updateGlobalFile: (
-    data: GlobalSettings | null,
-    raw: string,
-    status: GlobalSettingsFile['status'],
-    path?: string
-  ) => void;
-
   /** 設定專案目錄路徑 */
   setProjectDir: (dir: string | null) => void;
 
-  /** 更新單一設定層的資料 */
-  updateFile: (
+  // ── 載入（從磁碟同步資料，不標記 dirty）────────────────
+  /** 載入單一設定層（從磁碟讀入後呼叫） */
+  loadFileFromDisk: (
     layer: SettingsLayer,
     data: ClaudeSettings | null,
     raw: string,
@@ -52,17 +52,70 @@ interface AppActions {
     path?: string
   ) => void;
 
-  /** 更新 CLAUDE.md 內容 */
-  setClaudeMd: (scope: 'global' | 'project', content: string) => void;
+  /** 載入全域設定（從磁碟讀入後呼叫） */
+  loadGlobalFromDisk: (
+    data: GlobalSettings | null,
+    raw: string,
+    status: FileStatus,
+    path?: string
+  ) => void;
 
-  /** 標記有未儲存的變更 */
-  setDirty: (dirty: boolean) => void;
+  /** 載入 CLAUDE.md（從磁碟讀入後呼叫） */
+  loadClaudeMdFromDisk: (
+    scope: 'global' | 'project',
+    content: string,
+    path: string,
+    status: FileStatus
+  ) => void;
+
+  // ── Draft 編輯（UI 呼叫，只更新 store 不寫檔）──────────
+  /** 更新單一設定層的 draft 資料（UI 編輯時呼叫） */
+  updateFileDraft: (layer: SettingsLayer, data: ClaudeSettings) => void;
+
+  /** 更新全域設定的 draft */
+  updateGlobalDraft: (data: GlobalSettings) => void;
+
+  /** 更新 CLAUDE.md 的 draft 內容 */
+  updateClaudeMdDraft: (scope: 'global' | 'project', content: string) => void;
+
+  // ── Commit（寫檔成功後呼叫，清除 dirty）────────────────
+  /** 標記某層已成功寫檔，清除 dirty 並更新 raw */
+  markFileCommitted: (layer: SettingsLayer, raw: string) => void;
+
+  /** 標記全域設定已成功寫檔 */
+  markGlobalCommitted: (raw: string) => void;
+
+  /** 標記 CLAUDE.md 已成功寫檔 */
+  markClaudeMdCommitted: (scope: 'global' | 'project') => void;
+
+  // ── Undo（單步復原） ─────────────────────────────────
+  /** 復原某層到上一步（previousData） */
+  undoFile: (layer: SettingsLayer) => void;
+  /** 復原全域設定 */
+  undoGlobal: () => void;
+  /** 復原 CLAUDE.md */
+  undoClaudeMd: (scope: 'global' | 'project') => void;
+
+  // ── 衍生資源 ──
+  setAgents: (agents: AgentFile[]) => void;
+  setCommands: (commands: CommandFile[]) => void;
+  setOutputStyles: (outputStyles: OutputStyleFile[]) => void;
+  setSkills: (skills: SkillFile[]) => void;
 
   /** 重設整個 store（開啟新專案時使用） */
   reset: () => void;
 }
 
 // ─── 初始狀態 ──────────────────────────────────────────────
+const emptyClaudeMd = (path: string): ClaudeMdEntry => ({
+  content: '',
+  committedContent: '',
+  path,
+  status: 'missing',
+  dirty: false,
+  previousContent: undefined,
+});
+
 const initialState: AppState = {
   files: {
     user:    emptyFile('user',    DEFAULT_USER_PATH),
@@ -70,17 +123,25 @@ const initialState: AppState = {
     local:   emptyFile('local',   ''),
     managed: emptyFile('managed', DEFAULT_MANAGED_PATH),
   },
-  // 全域設定檔初始狀態（~/.claude.json）
   globalFile: {
     path: '%USERPROFILE%/.claude.json',
     status: 'missing',
     data: null,
     raw: '',
+    dirty: false,
+    previousData: undefined,
   },
   projectDir: null,
   activeTab: 'basic',
-  claudeMd: { global: '', project: '' },
-  isDirty: false,
+  claudeMd: {
+    global:  emptyClaudeMd('%USERPROFILE%\\.claude\\CLAUDE.md'),
+    project: emptyClaudeMd(''),
+  },
+  isDirty: false,  // 向下相容；實際檢查看各 file.dirty
+  agents: [],
+  commands: [],
+  outputStyles: [],
+  skills: [],
 };
 
 // ─── Zustand Store ──────────────────────────────────────────
@@ -94,25 +155,17 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
       projectDir: dir,
       files: {
         ...state.files,
-        // 更新專案層路徑
         project: {
-          ...state.files.project,
-          path: dir ? `${dir}\\.claude\\settings.json` : '',
-          status: 'missing',
-          data: null,
-          raw: '',
+          ...emptyFile('project', dir ? `${dir}\\.claude\\settings.json` : ''),
         },
         local: {
-          ...state.files.local,
-          path: dir ? `${dir}\\.claude\\settings.local.json` : '',
-          status: 'missing',
-          data: null,
-          raw: '',
+          ...emptyFile('local', dir ? `${dir}\\.claude\\settings.local.json` : ''),
         },
       },
     })),
 
-  updateFile: (layer, data, raw, status, path) =>
+  // ── 載入動作：清 dirty、寫入 data + raw ─────────────────
+  loadFileFromDisk: (layer, data, raw, status, path) =>
     set((state) => ({
       files: {
         ...state.files,
@@ -122,17 +175,13 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
           data,
           raw,
           status,
+          dirty: false,
+          previousData: undefined,
         },
       },
     })),
 
-  setClaudeMd: (scope, content) =>
-    set((state) => ({
-      claudeMd: { ...state.claudeMd, [scope]: content },
-      isDirty: true,
-    })),
-
-  updateGlobalFile: (data, raw, status, path) =>
+  loadGlobalFromDisk: (data, raw, status, path) =>
     set((state) => ({
       globalFile: {
         ...state.globalFile,
@@ -140,10 +189,175 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
         data,
         raw,
         status,
+        dirty: false,
+        previousData: undefined,
       },
     })),
 
-  setDirty: (dirty) => set({ isDirty: dirty }),
+  loadClaudeMdFromDisk: (scope, content, path, status) =>
+    set((state) => ({
+      claudeMd: {
+        ...state.claudeMd,
+        [scope]: {
+          content,
+          committedContent: content,
+          path,
+          status,
+          dirty: false,
+          previousContent: undefined,
+        },
+      },
+    })),
+
+  // ── Draft 編輯：push snapshot、set data、dirty=true ────
+  updateFileDraft: (layer, data) =>
+    set((state) => ({
+      files: {
+        ...state.files,
+        [layer]: {
+          ...state.files[layer],
+          previousData: state.files[layer].data,
+          data,
+          dirty: true,
+        },
+      },
+    })),
+
+  updateGlobalDraft: (data) =>
+    set((state) => ({
+      globalFile: {
+        ...state.globalFile,
+        previousData: state.globalFile.data,
+        data,
+        dirty: true,
+      },
+    })),
+
+  updateClaudeMdDraft: (scope, content) =>
+    set((state) => ({
+      claudeMd: {
+        ...state.claudeMd,
+        [scope]: {
+          ...state.claudeMd[scope],
+          previousContent: state.claudeMd[scope].content,
+          content,
+          dirty: true,
+        },
+      },
+    })),
+
+  // ── Commit：清 dirty、更新 raw、保留 previousData 供 undo ─
+  markFileCommitted: (layer, raw) =>
+    set((state) => ({
+      files: {
+        ...state.files,
+        [layer]: {
+          ...state.files[layer],
+          raw,
+          dirty: false,
+          status: 'ok',
+        },
+      },
+    })),
+
+  markGlobalCommitted: (raw) =>
+    set((state) => ({
+      globalFile: {
+        ...state.globalFile,
+        raw,
+        dirty: false,
+        status: 'ok',
+      },
+    })),
+
+  markClaudeMdCommitted: (scope) =>
+    set((state) => ({
+      claudeMd: {
+        ...state.claudeMd,
+        [scope]: {
+          ...state.claudeMd[scope],
+          committedContent: state.claudeMd[scope].content,
+          dirty: false,
+          status: 'ok',
+        },
+      },
+    })),
+
+  // ── Undo：data = previousData，並 dirty 視是否仍與 raw 相同而定
+  undoFile: (layer) =>
+    set((state) => {
+      const file = state.files[layer];
+      if (file.previousData === undefined) return {};
+      const restored = file.previousData;
+      // 比較 restored 與 raw 決定 dirty
+      const restoredStr = JSON.stringify(restored, null, 2);
+      return {
+        files: {
+          ...state.files,
+          [layer]: {
+            ...file,
+            data: restored,
+            previousData: undefined,
+            dirty: restoredStr !== file.raw,
+          },
+        },
+      };
+    }),
+
+  undoGlobal: () =>
+    set((state) => {
+      const gf = state.globalFile;
+      if (gf.previousData === undefined) return {};
+      const restored = gf.previousData;
+      const restoredStr = JSON.stringify(restored, null, 2);
+      return {
+        globalFile: {
+          ...gf,
+          data: restored,
+          previousData: undefined,
+          dirty: restoredStr !== gf.raw,
+        },
+      };
+    }),
+
+  undoClaudeMd: (scope) =>
+    set((state) => {
+      const entry = state.claudeMd[scope];
+      if (entry.previousContent === undefined) return {};
+      const restored = entry.previousContent;
+      return {
+        claudeMd: {
+          ...state.claudeMd,
+          [scope]: {
+            ...entry,
+            content: restored,
+            previousContent: undefined,
+            dirty: restored !== entry.committedContent,
+          },
+        },
+      };
+    }),
+
+  setAgents: (agents) => set({ agents }),
+  setCommands: (commands) => set({ commands }),
+  setOutputStyles: (outputStyles) => set({ outputStyles }),
+  setSkills: (skills) => set({ skills }),
 
   reset: () => set(initialState),
 }));
+
+// ─── 全局輔助 selector ─────────────────────────────────────
+/**
+ * 計算所有 dirty 的檔案數量（settings.json 4 層 + global + CLAUDE.md 2 份）
+ * 用於 header 的未儲存徽章
+ */
+export const getTotalDirtyCount = (state: AppState): number => {
+  let count = 0;
+  for (const layer of ['user', 'project', 'local', 'managed'] as SettingsLayer[]) {
+    if (state.files[layer].dirty) count++;
+  }
+  if (state.globalFile.dirty) count++;
+  if (state.claudeMd.global.dirty) count++;
+  if (state.claudeMd.project.dirty) count++;
+  return count;
+};

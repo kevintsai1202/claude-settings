@@ -8,15 +8,39 @@ import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
 import Toggle from '../ui/Toggle';
 import TagArrayInput from '../ui/TagArrayInput';
-import type { HookEvent, HookEntry, HooksConfig, ClaudeSettings } from '../../types/settings';
+import ComboBox from '../ui/ComboBox';
+import { HOOK_TEMPLATES, type HookTemplate } from './hookTemplates';
+import type { HookEvent, HookEntry, HookType, HooksConfig, ClaudeSettings } from '../../types/settings';
 import './TabContent.css';
+import './ResourceTab.css';  // 借用 .resource-chip 樣式做來源過濾
 
 const HOOK_EVENTS: { event: HookEvent; label: string; desc: string }[] = [
-  { event: 'PreToolUse',   label: 'PreToolUse',   desc: '工具執行前觸發' },
-  { event: 'PostToolUse',  label: 'PostToolUse',  desc: '工具執行後觸發' },
-  { event: 'Notification', label: 'Notification', desc: '通知事件' },
-  { event: 'Stop',         label: 'Stop',         desc: '回應結束時觸發' },
-  { event: 'SubagentStop', label: 'SubagentStop', desc: '子代理結束時觸發' },
+  { event: 'PreToolUse',       label: 'PreToolUse',       desc: '工具執行前觸發' },
+  { event: 'PostToolUse',      label: 'PostToolUse',      desc: '工具執行後觸發' },
+  { event: 'UserPromptSubmit', label: 'UserPromptSubmit', desc: '使用者送出訊息時觸發（送給模型前）' },
+  { event: 'Notification',     label: 'Notification',     desc: 'Claude 發出通知時觸發（如等待輸入）' },
+  { event: 'Stop',             label: 'Stop',             desc: '主 agent 回應結束時觸發' },
+  { event: 'SubagentStop',     label: 'SubagentStop',     desc: '子代理（subagent）結束時觸發' },
+  { event: 'SessionStart',     label: 'SessionStart',     desc: 'Session 開始時觸發（含 startup / resume / clear）' },
+  { event: 'SessionEnd',       label: 'SessionEnd',       desc: 'Session 結束時觸發' },
+  { event: 'PreCompact',       label: 'PreCompact',       desc: 'Context 壓縮前觸發（可保存對話）' },
+];
+
+/** Hook matcher 常見 glob 選項，僅作為下拉參考 */
+const COMMON_MATCHERS = [
+  'Bash',
+  'Read',
+  'Write',
+  'Edit',
+  'MultiEdit',
+  'Glob',
+  'Grep',
+  'Task',
+  'WebFetch',
+  'WebSearch',
+  'TodoWrite',
+  'mcp__.*',
+  '.*',
 ];
 
 /** 建立新的空白 HookEntry */
@@ -81,23 +105,24 @@ const HookPanel: React.FC<{
               <div key={entry.id} className="hook-entry">
                 <div className="hook-entry__row">
                   <span className="hook-entry__label">Matcher</span>
-                  <input
-                    type="text"
-                    placeholder="例如：Bash（留空表示全部）"
+                  <ComboBox
                     value={entry.matcher ?? ''}
-                    onChange={(e) => updateEntry(entry.id, { matcher: e.target.value })}
+                    options={COMMON_MATCHERS.map((m) => ({ value: m }))}
+                    onChange={(v) => updateEntry(entry.id, { matcher: v })}
+                    placeholder="留空代表全部工具，或從清單選擇"
+                    emptyLabel="（全部工具）"
                   />
                 </div>
                 <div className="hook-entry__row">
                   <span className="hook-entry__label">Type</span>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="radio" checked={entry.type === 'command'} onChange={() => updateEntry(entry.id, { type: 'command' })} />
-                    command
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="radio" checked={entry.type === 'http'} onChange={() => updateEntry(entry.id, { type: 'http' })} />
-                    http
-                  </label>
+                  <select
+                    value={entry.type}
+                    onChange={(e) => updateEntry(entry.id, { type: e.target.value as HookType })}
+                    style={{ width: 140 }}
+                  >
+                    <option value="command">command（執行命令）</option>
+                    <option value="http">http（HTTP webhook）</option>
+                  </select>
                 </div>
                 {entry.type === 'command' ? (
                   <div className="hook-entry__row">
@@ -155,6 +180,11 @@ const Hooks: React.FC = () => {
   /** 是否停用所有 Hook（master toggle） */
   const disableAllHooks = userSettings.disableAllHooks ?? false;
 
+  /** 記錄最近套用的範本 ID，用於套用後 2 秒確認動畫 */
+  const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
+  /** 範本來源過濾：all / official / community */
+  const [templateFilter, setTemplateFilter] = useState<'all' | 'official' | 'community'>('all');
+
   /** 更新 user 層設定並儲存 */
   const updateSettings = async (patch: Partial<ClaudeSettings>) => {
     await saveFile('user', files.user.path, { ...userSettings, ...patch });
@@ -163,6 +193,24 @@ const Hooks: React.FC = () => {
   /** 儲存 hooks 子物件變更 */
   const saveHooks = async (updated: HooksConfig) => {
     await updateSettings({ hooks: updated });
+  };
+
+  /**
+   * 套用範本：把範本轉成 HookEntry 並附加到該事件的 hook 清單
+   * @param tpl 要套用的範本
+   */
+  const applyTemplate = async (tpl: HookTemplate) => {
+    const entry: HookEntry = {
+      id: crypto.randomUUID(),
+      matcher: tpl.matcher,
+      type: 'command',
+      command: tpl.command,
+      timeout: tpl.timeout ?? 60000,
+    };
+    const existing = hooks[tpl.event] ?? [];
+    await saveHooks({ ...hooks, [tpl.event]: [...existing, entry] });
+    setAppliedTemplateId(tpl.id);
+    setTimeout(() => setAppliedTemplateId(null), 2000);
   };
 
   return (
@@ -187,6 +235,117 @@ const Hooks: React.FC = () => {
           ⚠️ 所有 Hook 已停用，以下設定暫時無效
         </p>
       )}
+
+      {/* 已設定 Hook 總覽 */}
+      <div
+        style={{
+          marginBottom: 16,
+          padding: '10px 14px',
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border)',
+          fontSize: 12,
+          color: 'var(--text-secondary)',
+          display: 'flex',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ color: 'var(--text-muted)' }}>已設定 Hook：</span>
+        {HOOK_EVENTS.filter(({ event }) => (hooks[event] ?? []).length > 0).length === 0 ? (
+          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>尚無任何 Hook</span>
+        ) : (
+          HOOK_EVENTS.filter(({ event }) => (hooks[event] ?? []).length > 0).map(({ event, label }) => (
+            <span
+              key={event}
+              style={{
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(99,102,241,0.14)',
+                color: '#818cf8',
+                fontSize: 11,
+              }}
+            >
+              {label} × {(hooks[event] ?? []).length}
+            </span>
+          ))
+        )}
+      </div>
+
+      {/* ── Hook 範本卡片庫 ── */}
+      <div className="hook-templates">
+        <div className="hook-templates__header" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <p className="section-title" style={{ margin: 0 }}>💡 範本庫</p>
+            <span className="form-hint" style={{ marginTop: 0 }}>
+              點「套用」會把範本新增為對應事件的一個 Hook，可再進一步微調
+            </span>
+          </div>
+          <div className="resource-toolbar__filter">
+            {(['all', 'official', 'community'] as const).map((s) => {
+              const count = s === 'all' ? HOOK_TEMPLATES.length : HOOK_TEMPLATES.filter((t) => t.source === s).length;
+              return (
+                <button
+                  key={s}
+                  className={`resource-chip${templateFilter === s ? ' resource-chip--active' : ''}`}
+                  onClick={() => setTemplateFilter(s)}
+                >
+                  {s === 'all' ? `全部 (${count})` : s === 'official' ? `🏢 官方 (${count})` : `🌐 社群 (${count})`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="hook-templates__grid">
+          {HOOK_TEMPLATES.filter((t) => templateFilter === 'all' || t.source === templateFilter).map((tpl) => (
+            <div key={tpl.id} className="hook-template-card">
+              <div className="hook-template-card__header">
+                <span className="hook-template-card__emoji">{tpl.emoji}</span>
+                <span className="hook-template-card__name">{tpl.name}</span>
+              </div>
+
+              {/* 事件 / 來源 / 平台 / matcher / 網路 標籤 */}
+              <div className="hook-template-card__tags">
+                <span className="hook-tag hook-tag--event">{tpl.event}</span>
+                <span className={`hook-tag hook-tag--source-${tpl.source}`}>
+                  {tpl.source === 'official' ? '🏢 官方' : '🌐 社群'}
+                </span>
+                {tpl.matcher && <span className="hook-tag hook-tag--matcher">{tpl.matcher}</span>}
+                <span className={`hook-tag hook-tag--platform hook-tag--platform-${tpl.platform}`}>
+                  {tpl.platform === 'cross' ? 'Cross-platform' : tpl.platform === 'windows' ? 'Windows' : 'Unix'}
+                </span>
+                {tpl.needsNetwork && <span className="hook-tag hook-tag--network">📡 需網路</span>}
+              </div>
+
+              <p className="hook-template-card__desc">{tpl.desc}</p>
+
+              {/* 需要額外設定的提示 */}
+              {tpl.needsSetup && (
+                <div className="hook-template-card__setup">
+                  ⚙️ {tpl.needsSetup}
+                </div>
+              )}
+
+              {/* 預覽效果 */}
+              <div className="hook-template-card__preview">
+                <span className="hook-preview-label">效果</span>
+                <span className="hook-preview-text">{tpl.preview}</span>
+              </div>
+
+              <button
+                className={`btn-primary hook-template-card__apply${appliedTemplateId === tpl.id ? ' hook-template-card__apply--applied' : ''}`}
+                onClick={() => applyTemplate(tpl)}
+                disabled={disableAllHooks}
+              >
+                {appliedTemplateId === tpl.id ? '✓ 已套用' : '＋ 套用到 ' + tpl.event}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <hr className="divider" />
+      <p className="section-title" style={{ marginTop: 20 }}>手動設定</p>
 
       {HOOK_EVENTS.map(({ event, label, desc }) => (
         <HookPanel

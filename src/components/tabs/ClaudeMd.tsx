@@ -15,18 +15,17 @@ const SCOPE_LABELS: Record<Scope, string> = {
 };
 
 const ClaudeMd: React.FC = () => {
-  const { claudeMd, projectDir } = useAppStore();
-  const { saveClaudeMd } = useFileManager();
+  const { claudeMd } = useAppStore();
+  const { saveClaudeMd, commitClaudeMd } = useFileManager();
   const [activeScope, setActiveScope] = useState<Scope>('global');
 
-  const content = claudeMd[activeScope];
+  /** 當前 scope 的內容 */
+  const content = claudeMd[activeScope].content;
 
-  /** 儲存當前標籤的內容 */
+  /** 儲存當前標籤：先寫 draft 再 commit 到磁碟 */
   const handleSave = async () => {
-    const path = activeScope === 'global'
-      ? '%USERPROFILE%\\.claude\\CLAUDE.md'
-      : `${projectDir ?? '.'}\\CLAUDE.md`;
-    await saveClaudeMd(activeScope, content, path);
+    await saveClaudeMd(activeScope, content);
+    await commitClaudeMd(activeScope);
   };
 
   /** 複製到剪貼簿 */
@@ -55,7 +54,9 @@ const ClaudeMd: React.FC = () => {
       <textarea
         className="md-textarea glass-card"
         value={content}
-        onChange={(e) => useAppStore.getState().setClaudeMd(activeScope, e.target.value)}
+        onChange={(e) =>
+          useAppStore.getState().updateClaudeMdDraft(activeScope, e.target.value)
+        }
         placeholder={`在此輸入 ${SCOPE_LABELS[activeScope]} 的內容...`}
         spellCheck={false}
       />

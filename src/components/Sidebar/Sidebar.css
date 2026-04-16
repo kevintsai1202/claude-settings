@@ -15,11 +15,86 @@
   padding: 0 4px 4px;
 }
 
+/* ── 專案選擇器（常駐於 Sidebar 最上方）── */
+.sidebar__project-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+
+.sidebar__project-btn:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sidebar__project-btn--active {
+  color: var(--text-primary);
+  border-color: var(--color-accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.sidebar__project-btn-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.sidebar__project-btn-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sidebar__project-btn-chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* 分組區塊（Settings.json / CLAUDE.md） */
+.sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.sidebar__group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sidebar__group-icon {
+  font-size: 12px;
+}
+
 .sidebar__file-list {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 0;
+  margin: 0;
 }
 
 .sidebar__file-item {
@@ -28,9 +103,20 @@
   gap: 8px;
   padding: 7px 8px;
   border-radius: var(--radius-md);
-  transition: background var(--transition);
 }
-.sidebar__file-item:hover { background: var(--bg-hover); }
+.sidebar__file-item--dirty {
+  position: relative;
+}
+.sidebar__file-item--dirty::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--color-warning);
+  border-radius: 1px;
+}
 
 .sidebar__file-icon {
   display: flex;
@@ -52,39 +138,3 @@
   color: var(--text-primary);
 }
 
-.sidebar__project {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0 4px;
-}
-
-.sidebar__project-path {
-  color: var(--text-secondary);
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 開啟專案按鈕 */
-.sidebar__open-btn {
-  margin-top: auto;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 7px 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: 13px;
-  transition: all var(--transition);
-}
-.sidebar__open-btn:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}

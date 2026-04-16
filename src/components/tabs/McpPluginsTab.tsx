@@ -1,41 +1,216 @@
 /**
- * McpPluginsTab — MCP 伺服器與插件設定表單
- * 讀寫 files.user.data 的 MCP 與 Plugin 相關欄位
- * 分為 MCP Servers、Plugins 兩個 CollapsibleSection，
- * enabledPlugins（Record<string, boolean>）建議透過 JSON Tab 編輯
+ * McpPluginsTab — MCP 伺服器與插件設定（v3.0）
+ * 改為三個區段：
+ *   1. MCP Servers 設定（mcpServers 物件逐項顯示 + 新增 / 刪除）
+ *   2. MCP 白/黑名單（原本的 allowed / denied / enabled / disabled）
+ *   3. Plugins 插件（enabledPlugins 物件逐項 toggle + channel 設定）
  */
-import React from 'react';
+import React, { useState } from 'react';
+import { Plug, Trash2, Plus } from 'lucide-react';
 import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
 import Toggle from '../ui/Toggle';
 import TagArrayInput from '../ui/TagArrayInput';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import type { ClaudeSettings } from '../../types/settings';
+import type { ClaudeSettings, McpServerEntry, McpServerType } from '../../types/settings';
 import './TabContent.css';
 
 const McpPluginsTab: React.FC = () => {
   const { files } = useAppStore();
   const { saveFile } = useFileManager();
 
-  /** 以 user 層為主要編輯對象 */
   const data: ClaudeSettings = files.user.data ?? {};
+  const mcpServers: Record<string, McpServerEntry> = data.mcpServers ?? {};
+  const enabledPlugins: Record<string, boolean> = data.enabledPlugins ?? {};
 
-  /**
-   * 更新 user 層設定並儲存
-   * @param patch 要合并的部分 ClaudeSettings
-   */
+  /** 新增 MCP server 的暫存欄位 */
+  const [newServerName, setNewServerName] = useState('');
+  const [newServerType, setNewServerType] = useState<McpServerType>('stdio');
+
+  /** 新增 Plugin 的暫存欄位 */
+  const [newPluginName, setNewPluginName] = useState('');
+
+  /** 更新 user 層設定並儲存 */
   const update = async (patch: Partial<ClaudeSettings>) => {
     await saveFile('user', files.user.path, { ...data, ...patch });
+  };
+
+  /** 新增一個 MCP server 項目 */
+  const addMcpServer = async () => {
+    const name = newServerName.trim();
+    if (!name || mcpServers[name]) return;
+    const entry: McpServerEntry = { type: newServerType };
+    if (newServerType === 'stdio') entry.command = '';
+    else entry.url = '';
+    await update({ mcpServers: { ...mcpServers, [name]: entry } });
+    setNewServerName('');
+  };
+
+  /** 刪除 MCP server 項目 */
+  const removeMcpServer = async (name: string) => {
+    const next = { ...mcpServers };
+    delete next[name];
+    await update({
+      mcpServers: Object.keys(next).length ? next : undefined,
+    });
+  };
+
+  /** 更新單一 MCP server 欄位 */
+  const updateMcpServer = async (name: string, patch: Partial<McpServerEntry>) => {
+    await update({
+      mcpServers: {
+        ...mcpServers,
+        [name]: { ...mcpServers[name], ...patch },
+      },
+    });
+  };
+
+  /** 切換 plugin 啟用狀態 */
+  const togglePlugin = async (name: string, enabled: boolean) => {
+    await update({ enabledPlugins: { ...enabledPlugins, [name]: enabled } });
+  };
+
+  /** 刪除 plugin 項目 */
+  const removePlugin = async (name: string) => {
+    const next = { ...enabledPlugins };
+    delete next[name];
+    await update({ enabledPlugins: Object.keys(next).length ? next : undefined });
+  };
+
+  /** 新增 plugin（預設為啟用） */
+  const addPlugin = async () => {
+    const name = newPluginName.trim();
+    if (!name || enabledPlugins[name] !== undefined) return;
+    await update({ enabledPlugins: { ...enabledPlugins, [name]: true } });
+    setNewPluginName('');
   };
 
   return (
     <div className="tab-content scroll-area">
       <h2 className="tab-title">🔌 MCP 與插件設定</h2>
-      <p className="tab-desc">管理 MCP Server 白/黑名單及插件 Channel 設定。</p>
+      <p className="tab-desc">管理 MCP Server 定義、白/黑名單，以及插件（Plugin）啟用狀態。</p>
 
       {/* ── MCP Servers 區段 ── */}
-      <CollapsibleSection title="MCP Servers" defaultOpen={true}>
+      <CollapsibleSection title={`MCP Servers（${Object.keys(mcpServers).length}）`} defaultOpen={true}>
+        {Object.keys(mcpServers).length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+            尚未設定任何 MCP server，請從下方新增。
+          </p>
+        ) : (
+          Object.entries(mcpServers).map(([name, entry]) => (
+            <div
+              key={name}
+              style={{
+                padding: 12,
+                marginBottom: 10,
+                background: 'var(--bg-elevated)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Plug size={13} color="var(--color-cyan)" />
+                  <strong className="mono">{name}</strong>
+                </div>
+                <button className="btn-danger" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => removeMcpServer(name)}>
+                  <Trash2 size={11} style={{ verticalAlign: 'middle', marginRight: 2 }} />
+                  刪除
+                </button>
+              </div>
 
+              {/* Type */}
+              <div className="form-row" style={{ marginBottom: 8 }}>
+                <label className="form-label" style={{ minWidth: 80 }}>Type</label>
+                <select
+                  value={entry.type}
+                  onChange={(e) => updateMcpServer(name, { type: e.target.value as McpServerType })}
+                  style={{ width: 140 }}
+                >
+                  <option value="stdio">stdio（本機命令）</option>
+                  <option value="sse">sse（Server-Sent Events）</option>
+                  <option value="http">http（HTTP endpoint）</option>
+                </select>
+              </div>
+
+              {/* Command / URL */}
+              {entry.type === 'stdio' ? (
+                <>
+                  <div className="form-row" style={{ marginBottom: 8 }}>
+                    <label className="form-label" style={{ minWidth: 80 }}>Command</label>
+                    <input
+                      type="text"
+                      placeholder="例如：npx"
+                      value={entry.command ?? ''}
+                      onChange={(e) => updateMcpServer(name, { command: e.target.value || undefined })}
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  <div className="form-row" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
+                    <label className="form-label" style={{ minWidth: 80, paddingTop: 6 }}>Args</label>
+                    <div style={{ flex: 1 }}>
+                      <TagArrayInput
+                        value={entry.args ?? []}
+                        onChange={(v) => updateMcpServer(name, { args: v.length ? v : undefined })}
+                        placeholder="參數逐一輸入後按 Enter"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="form-row" style={{ marginBottom: 8 }}>
+                  <label className="form-label" style={{ minWidth: 80 }}>URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={entry.url ?? ''}
+                    onChange={(e) => updateMcpServer(name, { url: e.target.value || undefined })}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+              )}
+
+              {/* Env 提示 */}
+              {entry.env && Object.keys(entry.env).length > 0 && (
+                <div className="form-row" style={{ marginBottom: 0, alignItems: 'flex-start' }}>
+                  <label className="form-label" style={{ minWidth: 80, paddingTop: 4 }}>Env</label>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    此 server 有 {Object.keys(entry.env).length} 個環境變數，請透過 JSON Tab 編輯
+                  </span>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+
+        {/* 新增 MCP server */}
+        <div className="add-rule-row" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <input
+            type="text"
+            placeholder="Server 名稱（唯一）"
+            value={newServerName}
+            onChange={(e) => setNewServerName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addMcpServer()}
+            style={{ flex: 1, minWidth: 160 }}
+          />
+          <select
+            value={newServerType}
+            onChange={(e) => setNewServerType(e.target.value as McpServerType)}
+            style={{ width: 110 }}
+          >
+            <option value="stdio">stdio</option>
+            <option value="sse">sse</option>
+            <option value="http">http</option>
+          </select>
+          <button className="btn-primary" onClick={addMcpServer}>
+            <Plus size={12} style={{ verticalAlign: 'middle', marginRight: 2 }} />
+            新增 Server
+          </button>
+        </div>
+      </CollapsibleSection>
+
+      {/* ── MCP 白/黑名單 ── */}
+      <CollapsibleSection title="MCP 白名單 / 黑名單" defaultOpen={false}>
         {/* 啟用所有專案 MCP Servers */}
         <div className="form-row form-row--toggle">
           <div>
@@ -48,7 +223,7 @@ const McpPluginsTab: React.FC = () => {
           />
         </div>
 
-        {/* 啟用的 MCP.json Servers */}
+        {/* Enabled MCP.json */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Enabled MCP.json Servers</label>
           <div style={{ flex: 1 }}>
@@ -61,7 +236,7 @@ const McpPluginsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* 停用的 MCP.json Servers */}
+        {/* Disabled MCP.json */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Disabled MCP.json Servers</label>
           <div style={{ flex: 1 }}>
@@ -70,11 +245,10 @@ const McpPluginsTab: React.FC = () => {
               onChange={(v) => update({ disabledMcpjsonServers: v.length ? v : undefined })}
               placeholder="輸入 server 名稱後按 Enter"
             />
-            <div className="form-hint">從 mcp.json 中停用的 server 名稱清單</div>
           </div>
         </div>
 
-        {/* 白名單 MCP Servers */}
+        {/* Allowed */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Allowed MCP Servers</label>
           <div style={{ flex: 1 }}>
@@ -87,7 +261,7 @@ const McpPluginsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* 黑名單 MCP Servers */}
+        {/* Denied */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Denied MCP Servers</label>
           <div style={{ flex: 1 }}>
@@ -100,7 +274,6 @@ const McpPluginsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* 僅允許 managed MCP Servers */}
         <div className="form-row form-row--toggle">
           <div>
             <div className="form-label">Allow Managed MCP Servers Only</div>
@@ -111,13 +284,60 @@ const McpPluginsTab: React.FC = () => {
             onChange={(v) => update({ allowManagedMcpServersOnly: v })}
           />
         </div>
-
       </CollapsibleSection>
 
       {/* ── Plugins 區段 ── */}
-      <CollapsibleSection title="Plugins 插件設定" defaultOpen={true}>
+      <CollapsibleSection title={`Plugins（${Object.keys(enabledPlugins).length}）`} defaultOpen={true}>
+        {Object.keys(enabledPlugins).length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+            尚未定義任何 plugin，請從下方新增。
+          </p>
+        ) : (
+          Object.entries(enabledPlugins).map(([name, enabled]) => (
+            <div
+              key={name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                marginBottom: 8,
+                background: 'var(--bg-elevated)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <span className="mono" style={{ flex: 1, fontSize: 13 }}>{name}</span>
+              <Toggle checked={enabled} onChange={(v) => togglePlugin(name, v)} />
+              <button
+                className="btn-danger"
+                style={{ padding: '3px 8px', fontSize: 11 }}
+                onClick={() => removePlugin(name)}
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))
+        )}
 
-        {/* 啟用 Channels */}
+        <div className="add-rule-row" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+          <input
+            type="text"
+            placeholder="Plugin ID，例如 commit-commands"
+            value={newPluginName}
+            onChange={(e) => setNewPluginName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addPlugin()}
+            style={{ flex: 1 }}
+          />
+          <button className="btn-primary" onClick={addPlugin}>
+            <Plus size={12} style={{ verticalAlign: 'middle', marginRight: 2 }} />
+            新增 Plugin
+          </button>
+        </div>
+
+        <hr className="divider" style={{ margin: '16px 0' }} />
+        <p className="section-title">Channel 設定</p>
+
         <div className="form-row form-row--toggle">
           <div>
             <div className="form-label">Channels Enabled</div>
@@ -129,7 +349,6 @@ const McpPluginsTab: React.FC = () => {
           />
         </div>
 
-        {/* 允許的 Channel 插件 */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Allowed Channel Plugins</label>
           <div style={{ flex: 1 }}>
@@ -138,11 +357,9 @@ const McpPluginsTab: React.FC = () => {
               onChange={(v) => update({ allowedChannelPlugins: v.length ? v : undefined })}
               placeholder="輸入插件 ID 後按 Enter"
             />
-            <div className="form-hint">允許載入的 Channel 插件 ID 白名單</div>
           </div>
         </div>
 
-        {/* 封鎖的 Marketplace */}
         <div className="form-row" style={{ alignItems: 'flex-start' }}>
           <label className="form-label" style={{ paddingTop: 6 }}>Blocked Marketplaces</label>
           <div style={{ flex: 1 }}>
@@ -151,11 +368,9 @@ const McpPluginsTab: React.FC = () => {
               onChange={(v) => update({ blockedMarketplaces: v.length ? v : undefined })}
               placeholder="輸入 marketplace URL 後按 Enter"
             />
-            <div className="form-hint">封鎖的插件 marketplace 清單</div>
           </div>
         </div>
 
-        {/* 僅允許已知 Marketplace */}
         <div className="form-row form-row--toggle">
           <div>
             <div className="form-label">Strict Known Marketplaces</div>
@@ -166,24 +381,6 @@ const McpPluginsTab: React.FC = () => {
             onChange={(v) => update({ strictKnownMarketplaces: v })}
           />
         </div>
-
-        {/* enabledPlugins 說明提示 */}
-        <div
-          style={{
-            marginTop: 12,
-            padding: '12px 16px',
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div className="form-label" style={{ marginBottom: 4 }}>Enabled Plugins（Record&lt;string, boolean&gt;）</div>
-          <div className="form-hint">
-            此欄位為鍵值對格式（插件 ID → 啟用狀態），請切換至 <strong>JSON</strong> Tab 直接編輯
-            <code style={{ marginLeft: 4 }}>enabledPlugins</code> 欄位。
-          </div>
-        </div>
-
       </CollapsibleSection>
     </div>
   );

@@ -8,8 +8,26 @@ import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
 import Toggle from '../ui/Toggle';
 import TagArrayInput from '../ui/TagArrayInput';
+import ComboBox from '../ui/ComboBox';
 import type { ClaudeSettings, AttributionSettings, WorktreeSettings } from '../../types/settings';
 import './TabContent.css';
+
+// 常見 Shell 路徑（依作業系統）
+const SHELL_OPTIONS = [
+  { value: '/bin/bash',                          label: '/bin/bash',                          hint: 'macOS/Linux' },
+  { value: '/bin/zsh',                           label: '/bin/zsh',                           hint: 'macOS 預設' },
+  { value: '/bin/sh',                            label: '/bin/sh',                            hint: 'POSIX' },
+  { value: '/usr/bin/fish',                      label: '/usr/bin/fish',                      hint: 'Fish shell' },
+  { value: 'pwsh',                               label: 'pwsh',                               hint: 'PowerShell 7+' },
+  { value: 'powershell.exe',                     label: 'powershell.exe',                     hint: 'Windows PowerShell' },
+  { value: 'cmd.exe',                            label: 'cmd.exe',                            hint: 'Windows cmd' },
+];
+
+// Force Login Method 官方支援值
+const LOGIN_METHOD_OPTIONS = [
+  { value: 'claudeai', label: 'claudeai', hint: 'Claude.ai 登入' },
+  { value: 'console',  label: 'console',  hint: 'Anthropic Console API key' },
+];
 
 const AdvancedTab: React.FC = () => {
   const { files } = useAppStore();
@@ -60,17 +78,15 @@ const AdvancedTab: React.FC = () => {
       {/* ── Shell & Git 區段 ── */}
       <p className="section-title">Shell &amp; Git</p>
 
-      {/* 預設 Shell */}
+      {/* 預設 Shell（Combo：常見 shell + 自訂） */}
       <div className="form-row">
         <label className="form-label">Default Shell</label>
-        <input
-          type="text"
-          placeholder="例如 /bin/bash 或 powershell"
+        <ComboBox
           value={data.defaultShell ?? ''}
-          onChange={(e) => update({ defaultShell: e.target.value || undefined })}
-          style={{ flex: 1 }}
+          options={SHELL_OPTIONS}
+          onChange={(v) => update({ defaultShell: v || undefined })}
+          placeholder="選擇常見 shell 或自訂路徑"
         />
-        <span className="form-hint">覆蓋系統預設的 Shell</span>
       </div>
 
       {/* 包含 Git 操作指引 */}
@@ -253,16 +269,21 @@ const AdvancedTab: React.FC = () => {
         />
       </div>
 
-      {/* Force Login Method */}
+      {/* Force Login Method（純下拉：僅官方兩個值） */}
       <div className="form-row">
         <label className="form-label">Force Login Method</label>
-        <input
-          type="text"
-          placeholder="強制使用的登入方式（如 sso）"
+        <select
           value={data.forceLoginMethod ?? ''}
           onChange={(e) => update({ forceLoginMethod: e.target.value || undefined })}
-          style={{ flex: 1 }}
-        />
+          style={{ flex: 1, maxWidth: 260 }}
+        >
+          <option value="">（不強制）</option>
+          {LOGIN_METHOD_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label} — {o.hint}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Force Login Org UUID */}

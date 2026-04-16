@@ -232,6 +232,275 @@
   font-size: 12px;
 }
 
+/* ── Hook 範本庫 ───────────────────────────────────────── */
+
+.hook-templates {
+  margin-bottom: 20px;
+}
+
+.hook-templates__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+/* 範本卡片 Grid（3 欄自適應） */
+.hook-templates__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* 單張範本卡片 */
+.hook-template-card {
+  padding: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color var(--transition), background var(--transition);
+}
+.hook-template-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+.hook-template-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hook-template-card__emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+.hook-template-card__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hook-template-card__tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.hook-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+}
+.hook-tag--event {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+.hook-tag--matcher {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+}
+.hook-tag--platform-cross {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;  /* 比 #10b981 亮一階，深色背景更清楚 */
+}
+.hook-tag--platform-windows {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.hook-tag--platform-unix {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+}
+.hook-tag--source-official {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+.hook-tag--source-community {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
+.hook-tag--network {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.hook-template-card__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+/* 需要額外設定的警示區塊 */
+.hook-template-card__setup {
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  color: #f59e0b;
+  word-break: break-word;
+}
+
+.hook-template-card__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+.hook-preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.hook-preview-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #34d399;  /* 比 #10b981 亮一階，暗黑模式下可讀性更好 */
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.hook-template-card__apply {
+  margin-top: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  transition: all var(--transition);
+}
+.hook-template-card__apply--applied {
+  background: var(--color-success) !important;
+  color: #fff !important;
+}
+
+/* ── StatusLine Tab ─────────────────────────────────────── */
+
+/* 啟用狀態列 */
+.statusline-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 範本卡片 Grid（3 欄，最小寬 200px） */
+.statusline-templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* 單張範本卡片 */
+.statusline-template-card {
+  padding: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition), background var(--transition);
+}
+.statusline-template-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+
+/* 卡片頭部：emoji + 名稱 */
+.statusline-template-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.statusline-template-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+.statusline-template-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 卡片描述 */
+.statusline-template-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  flex: 1;
+  margin-bottom: 8px;
+}
+
+/* 預覽區塊 */
+.statusline-template-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.statusline-preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.statusline-preview-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #34d399;  /* 比 #10b981 亮，暗黑模式易讀 */
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  word-break: break-all;
+}
+
+/* stdin JSON 說明區塊 */
+.statusline-stdin-doc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.7;
+}
+
+/* 行內 code 樣式（說明文字內使用） */
+.inline-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
 /* 合并預覽表格 */
 .merge-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .merge-table th {
@@ -271,23 +540,135 @@
 }
 .json-editor__status--ok    { background: rgba(16,185,129,0.12); color: var(--color-success); }
 .json-editor__status--error { background: rgba(239,68,68,0.12);  color: var(--color-danger);  }
-.json-editor__textarea {
+/* JSON 編輯器容器（overlay + textarea） */
+.json-editor__editor {
   flex: 1;
+  position: relative;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+/* 共用 textarea/pre 排版屬性，兩者必須一致才能對齊 */
+.json-editor__textarea,
+.json-editor__highlight {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 16px;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.7;
-  padding: 16px;
-  resize: none;
-  min-height: 300px;
-  user-select: text;
-  background: var(--bg-elevated);
+  letter-spacing: 0;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
   border-radius: var(--radius-lg);
 }
-.json-editor__errors {
-  background: rgba(239,68,68,0.08);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  font-size: 12px;
+
+/* 底層：彩色高亮層 */
+.json-editor__highlight {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  overflow: auto;
+  pointer-events: none;
+  z-index: 1;
+  border: 1px solid var(--border);
+}
+
+/* overlay 模式下 textarea 變透明，讓底下 pre 的顏色穿透顯示 */
+.json-editor__textarea--overlay {
+  background: transparent !important;
+  color: transparent;
+  caret-color: var(--text-primary);
+  z-index: 2;
+  border: 1px solid transparent;
+  resize: none;
+  outline: none;
+}
+.json-editor__textarea--overlay:focus {
+  border-color: var(--color-accent);
+}
+.json-editor__textarea--overlay::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: transparent;
+}
+
+/* 錯誤標示樣式：直接在內文中把字元染紅 */
+.json-err {
   color: var(--color-danger);
+  font-weight: 600;
+  pointer-events: auto;  /* pre 是 none，這裡重新啟用讓 hover 可觸發 */
+  cursor: help;
+}
+.json-err--syntax {
+  background: rgba(239, 68, 68, 0.28);
+  border-radius: 2px;
+  padding: 0 1px;
+  animation: json-err-blink 1s ease-in-out infinite;
+}
+.json-err--syntax:hover {
+  background: rgba(239, 68, 68, 0.55);
+  animation-play-state: paused;
+}
+.json-err--schema {
+  background: rgba(245, 158, 11, 0.22);
+  color: #f59e0b;
+  border-bottom: 1px dashed #f59e0b;
+  border-radius: 2px;
+}
+.json-err--schema:hover {
+  background: rgba(245, 158, 11, 0.4);
+}
+
+@keyframes json-err-blink {
+  0%, 100% { background: rgba(239, 68, 68, 0.28); }
+  50%      { background: rgba(239, 68, 68, 0.48); }
+}
+
+/* 錯誤 Tooltip —— fixed 定位跟著滑鼠 */
+.json-err__tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 400px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--color-danger);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: json-err-tooltip-in 0.15s ease-out;
+}
+
+.json-err__tooltip--schema {
+  border-color: #f59e0b;
+  border-left-color: #f59e0b;
+}
+
+.json-err__tooltip-kind {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-danger);
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.json-err__tooltip--schema .json-err__tooltip-kind {
+  color: #f59e0b;
+}
+
+.json-err__tooltip-msg {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-word;
+}
+
+@keyframes json-err-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

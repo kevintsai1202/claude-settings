@@ -55,8 +55,17 @@ export interface HookEntry {
   timeout?: number;     // 超時毫秒數
 }
 
-/** 五種 Hook 事件類型 */
-export type HookEvent = 'PreToolUse' | 'PostToolUse' | 'Notification' | 'Stop' | 'SubagentStop';
+/** 九種 Hook 事件類型（含 v2.x 新增的 4 種） */
+export type HookEvent =
+  | 'PreToolUse'
+  | 'PostToolUse'
+  | 'Notification'
+  | 'Stop'
+  | 'SubagentStop'
+  | 'UserPromptSubmit'
+  | 'SessionStart'
+  | 'SessionEnd'
+  | 'PreCompact';
 
 /** Hooks 設定物件（索引簽名對應各事件） */
 export type HooksConfig = Partial<Record<HookEvent, HookEntry[]>>;
@@ -146,13 +155,81 @@ export interface AutoModeSettings {
 }
 
 // ─── MCP 設定 ──────────────────────────────────────────────
+/** MCP Server 類型 */
+export type McpServerType = 'stdio' | 'sse' | 'http';
+
 /** MCP Server 設定項目 */
 export interface McpServerEntry {
-  type: 'stdio' | 'sse' | 'http';
+  type: McpServerType;
   command?: string;
   url?: string;
   args?: string[];
   env?: Record<string, string>;
+}
+
+// ─── StatusLine 設定 ───────────────────────────────────────
+/**
+ * StatusLine 類型
+ * 注意：Claude Code 2.1.x 僅支援 'command'，static 已從 schema 移除
+ */
+export type StatusLineType = 'command';
+
+/** StatusLine 設定 */
+export interface StatusLineSettings {
+  type: StatusLineType;         // 目前僅支援 'command'
+  command?: string;             // 執行的 shell 命令，透過 stdin 接收 session JSON
+  padding?: number;             // 左右內邊距
+  refreshInterval?: number;     // 每 N 秒重新執行命令（最小值 1）
+}
+
+// ─── Agent / Command / Output Style 檔案 ───────────────────
+/** Subagent 檔案（.md with frontmatter） */
+export interface AgentFile {
+  id: string;                   // 來源路徑當作唯一 ID
+  scope: 'user' | 'project';    // 來源範圍
+  name: string;                 // frontmatter.name 或檔名
+  description?: string;         // frontmatter.description
+  tools?: string[];             // frontmatter.tools（分號或逗號分隔）
+  model?: string;               // frontmatter.model
+  path: string;                 // 絕對路徑
+  body: string;                 // frontmatter 之後的內容
+}
+
+/** Slash Command 檔案 */
+export interface CommandFile {
+  id: string;
+  scope: 'user' | 'project';
+  name: string;                 // 檔名（不含 .md）
+  description?: string;
+  argumentHint?: string;        // frontmatter.argument-hint
+  allowedTools?: string[];      // frontmatter.allowed-tools
+  model?: string;
+  path: string;
+  body: string;
+}
+
+/** Output Style 檔案 */
+export interface OutputStyleFile {
+  id: string;
+  scope: 'user' | 'project' | 'builtin';
+  name: string;
+  description?: string;
+  path: string;                 // builtin 時為虛擬路徑
+  body: string;
+}
+
+/** Skill 檔案（.../<skill>/SKILL.md） */
+export interface SkillFile {
+  id: string;
+  scope: 'user' | 'project';
+  name: string;                 // 資料夾名稱（skill id）
+  displayName?: string;         // frontmatter.name（若有，通常同資料夾名）
+  description?: string;
+  allowedTools?: string[];      // frontmatter.allowed-tools
+  dir: string;                  // skill 資料夾絕對路徑
+  path: string;                 // SKILL.md 檔案絕對路徑
+  body: string;                 // SKILL.md 的主體（去除 frontmatter）
+  subdirs: string[];            // skill 資料夾下的子資料夾（references / scripts 等）
 }
 
 // ─── 完整 Claude Settings JSON 結構 ───────────────────────
@@ -219,7 +296,7 @@ export interface ClaudeSettings {
   allowedChannelPlugins?: string[];        // 允許的 channel 插件
   blockedMarketplaces?: string[];          // 黑名單 marketplace
   strictKnownMarketplaces?: boolean;       // 僅允許已知 marketplace
-  extraKnownMarketplaces?: unknown[];      // 額外已知 marketplace
+  extraKnownMarketplaces?: Record<string, unknown>; // 額外已知 marketplace（物件格式：名稱 → 設定）
 
   // ── Hooks 設定 ──
   hooks?: HooksConfig;                     // Hook 事件設定
@@ -233,6 +310,9 @@ export interface ClaudeSettings {
 
   // ── 權限設定 ──
   permissions?: Permissions;              // 完整權限設定
+
+  // ── StatusLine 設定 ──
+  statusLine?: StatusLineSettings;        // 狀態列自訂
 
   // ── Sandbox 設定 ──
   sandbox?: SandboxSettings;              // 沙箱設定
@@ -253,6 +333,8 @@ export interface ClaudeSettings {
   pluginTrustMessage?: string;             // 插件信任訊息
   feedbackSurveyRate?: number;             // 意見調查頻率
   disableDeepLinkRegistration?: boolean;   // 停用 deep link 註冊
+  skipDangerousModePermissionPrompt?: boolean; // 略過危險模式確認提示（根層級）
+  skipAutoPermissionPrompt?: boolean;          // 略過 auto 模式權限確認提示
 }
 
 // ─── 全域設定（~/.claude.json） ────────────────────────────
@@ -270,25 +352,29 @@ export interface GlobalSettings {
 /** 設定檔的讀取狀態 */
 export type FileStatus = 'ok' | 'missing' | 'invalid' | 'readonly';
 
-/** 單一設定檔的完整資訊 */
+/** 單一設定檔的完整資訊（支援 draft + 單步 undo） */
 export interface SettingsFile {
   layer: SettingsLayer;
   path: string;
   status: FileStatus;
-  data: ClaudeSettings | null;   // null 表示檔案不存在或解析失敗
-  raw: string;                   // 原始 JSON 字串（用於 JSON 編輯器）
+  data: ClaudeSettings | null;                // 目前編輯中（可能為 draft）
+  raw: string;                                // 已寫入磁碟的原始 JSON 字串
+  dirty: boolean;                             // 是否有未寫入磁碟的變更
+  previousData?: ClaudeSettings | null;       // 上一步 snapshot（for undo）
 }
 
-/** 全域設定檔資訊 */
+/** 全域設定檔資訊（支援 draft + 單步 undo） */
 export interface GlobalSettingsFile {
   path: string;
   status: FileStatus;
   data: GlobalSettings | null;
   raw: string;
+  dirty: boolean;
+  previousData?: GlobalSettings | null;
 }
 
 // ─── Store 全局狀態 ────────────────────────────────────────
-/** 當前選擇的 Tab（擴充為 11 個） */
+/** 當前選擇的 Tab（v3.1 — 16 個） */
 export type TabId =
   | 'basic'
   | 'permissions'
@@ -296,16 +382,31 @@ export type TabId =
   | 'env'
   | 'sandbox'
   | 'mcp'
+  | 'agents'
+  | 'commands'
+  | 'outputstyles'
+  | 'skills'
+  | 'statusline'
   | 'advanced'
   | 'global'
   | 'claudemd'
   | 'merge'
   | 'json';
 
-/** CLAUDE.md 多標籤內容 */
+/** 單一 CLAUDE.md 檔案的資訊（支援 draft + 單步 undo） */
+export interface ClaudeMdEntry {
+  content: string;          // 目前編輯中的內容（可能為 draft）
+  committedContent: string; // 已寫入磁碟的內容（dirty 比較基準）
+  path: string;             // 檔案路徑（原始型式）
+  status: FileStatus;       // 讀取狀態
+  dirty: boolean;           // 是否有未儲存變更
+  previousContent?: string; // 上一步 snapshot（for undo）
+}
+
+/** CLAUDE.md 多標籤 — 每筆含內容與檔案資訊 */
 export interface ClaudeMdFiles {
-  global: string;   // ~/.claude/CLAUDE.md
-  project: string;  // <project>/CLAUDE.md
+  global: ClaudeMdEntry;   // ~/.claude/CLAUDE.md
+  project: ClaudeMdEntry;  // <project>/CLAUDE.md
 }
 
 /** 整個 App 的全局狀態介面 */
@@ -322,4 +423,12 @@ export interface AppState {
   claudeMd: ClaudeMdFiles;
   // 是否有未儲存的變更
   isDirty: boolean;
+  // Subagents 清單（user + project）
+  agents: AgentFile[];
+  // Slash Commands 清單
+  commands: CommandFile[];
+  // Output Styles 清單（builtin + user + project）
+  outputStyles: OutputStyleFile[];
+  // Skills 清單（user + project）
+  skills: SkillFile[];
 }

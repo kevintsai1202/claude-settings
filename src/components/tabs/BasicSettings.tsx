@@ -10,35 +10,47 @@ import { useManagedField } from '../../hooks/useManagedField';
 import Toggle from '../ui/Toggle';
 import ManagedBadge from '../ui/ManagedBadge';
 import TagArrayInput from '../ui/TagArrayInput';
+import ComboBox from '../ui/ComboBox';
 import type { EffortLevel, UpdateChannel, ClaudeSettings } from '../../types/settings';
 import './TabContent.css';
 
-// 可選的 Claude 模型清單
-const MODELS = [
-  'claude-opus-4-6',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5-20251001',
+// 可選的 Claude 模型（含別名與精確 ID，允許自訂輸入）
+const MODEL_OPTIONS = [
+  { value: 'claude-opus-4-6',         label: 'claude-opus-4-6',         hint: 'Opus 4.6 最新' },
+  { value: 'claude-sonnet-4-6',       label: 'claude-sonnet-4-6',       hint: 'Sonnet 4.6' },
+  { value: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4-5-20251001', hint: 'Haiku 4.5' },
+  { value: 'opus',                    label: 'opus',                    hint: '別名' },
+  { value: 'sonnet',                  label: 'sonnet',                  hint: '別名' },
+  { value: 'haiku',                   label: 'haiku',                   hint: '別名' },
+  { value: 'default',                 label: 'default',                 hint: 'Claude Code 預設' },
 ];
 
-// 語言選項
-const LANGUAGES = [
-  { value: '',         label: '（預設）' },
-  { value: 'zh-TW',   label: '繁體中文' },
-  { value: 'zh-CN',   label: '簡體中文' },
-  { value: 'en',      label: 'English' },
-  { value: 'japanese', label: '日本語' },
+// 語言選項（純下拉，ISO 常見語言；新增罕見語言仍允許自訂 → 改為 Combo）
+const LANGUAGE_OPTIONS = [
+  { value: 'zh-TW',    label: 'zh-TW — 繁體中文' },
+  { value: 'zh-CN',    label: 'zh-CN — 簡體中文' },
+  { value: 'en',       label: 'en — English' },
+  { value: 'ja',       label: 'ja — 日本語' },
+  { value: 'ko',       label: 'ko — 한국어' },
+  { value: 'es',       label: 'es — Español' },
+  { value: 'fr',       label: 'fr — Français' },
+  { value: 'de',       label: 'de — Deutsch' },
+  { value: 'pt',       label: 'pt — Português' },
+  { value: 'it',       label: 'it — Italiano' },
+  { value: 'ru',       label: 'ru — Русский' },
 ];
 
-// 輸出風格
-const OUTPUT_STYLES = [
-  { value: '',              label: '（預設）' },
-  { value: 'concise',      label: 'Concise' },
-  { value: 'explanatory',  label: 'Explanatory' },
-  { value: 'formal',       label: 'Formal' },
+// 輸出風格（含官方內建，可自訂）
+const OUTPUT_STYLE_OPTIONS = [
+  { value: 'default',     label: 'default',     hint: '內建' },
+  { value: 'explanatory', label: 'explanatory', hint: '內建' },
+  { value: 'learning',    label: 'learning',    hint: '內建' },
+  { value: 'concise',     label: 'concise' },
+  { value: 'formal',      label: 'formal' },
 ];
 
 const BasicSettings: React.FC = () => {
-  const { files } = useAppStore();
+  const { files, agents, outputStyles } = useAppStore();
   const { saveFile } = useFileManager();
 
   // 以 user 層為主要編輯對象
@@ -61,20 +73,19 @@ const BasicSettings: React.FC = () => {
       <h2 className="tab-title">🔧 基本設定</h2>
       <p className="tab-desc">編輯 User 層的常用設定（儲存至 <span className="mono">~/.claude/settings.json</span>）</p>
 
-      {/* Model */}
+      {/* Model（Combo：常見模型 + 自訂輸入） */}
       <div className="form-row">
         <label className="form-label">
           Model
           {modelManaged && <ManagedBadge />}
         </label>
-        <select
+        <ComboBox
           value={userSettings.model ?? ''}
-          onChange={(e) => update({ model: e.target.value || undefined })}
+          options={MODEL_OPTIONS}
+          onChange={(v) => update({ model: v || undefined })}
           disabled={modelManaged}
-        >
-          <option value="">（使用預設）</option>
-          {MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
+          placeholder="選擇或輸入自訂模型 ID"
+        />
       </div>
 
       {/* Effort Level */}
@@ -106,42 +117,50 @@ const BasicSettings: React.FC = () => {
         />
       </div>
 
-      {/* Agent — agent 名稱 */}
+      {/* Agent — 依 ~/.claude/agents/ 的 .md 檔動態列出 */}
       <div className="form-row">
         <label className="form-label">Agent</label>
-        <input
-          type="text"
-          placeholder="（預設 agent）"
+        <ComboBox
           value={userSettings.agent ?? ''}
-          onChange={(e) => update({ agent: e.target.value || undefined })}
-          style={{ flex: 1 }}
+          options={agents.map((a) => ({
+            value: a.name,
+            label: a.name,
+            hint: a.scope,
+          }))}
+          onChange={(v) => update({ agent: v || undefined })}
+          placeholder="選擇 subagent 或自訂名稱"
         />
       </div>
 
-      {/* Language */}
+      {/* Language（Combo：ISO 常見語言 + 自訂） */}
       <div className="form-row">
         <label className="form-label">
           Language
           {langManaged && <ManagedBadge />}
         </label>
-        <select
+        <ComboBox
           value={userSettings.language ?? ''}
-          onChange={(e) => update({ language: e.target.value || undefined })}
+          options={LANGUAGE_OPTIONS}
+          onChange={(v) => update({ language: v || undefined })}
           disabled={langManaged}
-        >
-          {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-        </select>
+          placeholder="選擇語言代碼或自訂"
+        />
       </div>
 
-      {/* Output Style */}
+      {/* Output Style（Combo：整合 outputStyles store 動態清單 + 內建） */}
       <div className="form-row">
         <label className="form-label">Output Style</label>
-        <select
+        <ComboBox
           value={userSettings.outputStyle ?? ''}
-          onChange={(e) => update({ outputStyle: e.target.value || undefined })}
-        >
-          {OUTPUT_STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
+          options={[
+            ...OUTPUT_STYLE_OPTIONS,
+            ...outputStyles
+              .filter((o) => o.scope !== 'builtin')
+              .map((o) => ({ value: o.name, label: o.name, hint: o.scope })),
+          ]}
+          onChange={(v) => update({ outputStyle: v || undefined })}
+          placeholder="選擇或輸入 output style 名稱"
+        />
       </div>
 
       <hr className="divider" />

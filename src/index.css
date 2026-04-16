@@ -17,10 +17,10 @@
   --border-hover: rgba(255, 255, 255, 0.15);
   --border-focus: rgba(255, 255, 255, 0.35);
 
-  /* 文字 */
-  --text-primary:   #f0f0f0;
-  --text-secondary: #888888;
-  --text-muted:     #555555;
+  /* 文字（dark 模式需兼顧 AA 對比度：#111 bg 上至少 4.5:1） */
+  --text-primary:   #f0f0f0;  /* 18:1 */
+  --text-secondary: #a8a8a8;  /* 7:1 — 原 #888 約 5:1 偏弱 */
+  --text-muted:     #888888;  /* 5:1 — 原 #555 僅 2.8:1 不夠讀 */
   --text-accent:    #ffffff;
 
   /* 強調色（最小使用）*/
@@ -75,8 +75,8 @@
   --border-focus: rgba(0, 0, 0, 0.4);
 
   --text-primary:   #111111;
-  --text-secondary: #555555;
-  --text-muted:     #999999;
+  --text-secondary: #555555;  /* 7.5:1 — 保留 */
+  --text-muted:     #757575;  /* 4.6:1 — 原 #999 僅 2.85:1 不夠 */
   --text-accent:    #000000;
 
   --tag-allow-bg:   rgba(16, 185, 129, 0.1);

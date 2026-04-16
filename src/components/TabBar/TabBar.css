@@ -1,14 +1,82 @@
-/* TabBar 頂部導航樣式 */
+/* TabBar 兩層導航樣式 */
+
+.tabbar-wrap {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── 上層：類別列 ── */
+.tabbar-cat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabbar-cat__btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.tabbar-cat__btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tabbar-cat__btn--active {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.tabbar-cat__icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-accent);
+}
+
+.tabbar-cat__label {
+  font-size: 13px;
+}
+
+.tabbar-cat__count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.tabbar-cat__btn--active .tabbar-cat__count {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ── 下層：Tab 列 ── */
 .tabbar {
   display: flex;
   align-items: center;
   height: var(--tabbar-height);
   padding: 0 8px;
   gap: 1px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
   overflow-x: auto;
-  flex-shrink: 0;
 }
 .tabbar::-webkit-scrollbar { height: 0; }
 
