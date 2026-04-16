@@ -1,22 +1,30 @@
 /**
  * Permissions Tab — 權限規則管理
  * 分 Allow / Ask / Deny 三區塊，支援新增與刪除規則
+ * v2.0 — 擴充 defaultMode 6 選項、additionalDirectories、安全開關
  */
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
+import { useManagedField } from '../../hooks/useManagedField';
 import RuleTag from '../ui/RuleTag';
+import Toggle from '../ui/Toggle';
+import ManagedBadge from '../ui/ManagedBadge';
+import TagArrayInput from '../ui/TagArrayInput';
 import type { DefaultMode, ClaudeSettings } from '../../types/settings';
 import './TabContent.css';
 
 // 常用工具名稱選項
 const TOOLS = ['Bash', 'Read', 'Write', 'Edit', 'WebFetch', 'WebSearch', 'Glob', 'Grep', 'mcp__*'];
 
+// 完整 6 個 defaultMode 選項（對應官方 v2.0 型別）
 const DEFAULT_MODES: { value: DefaultMode; label: string }[] = [
   { value: 'default',            label: 'default（預設行為）' },
   { value: 'acceptEdits',        label: 'acceptEdits（自動接受檔案編輯）' },
   { value: 'dontAsk',            label: 'dontAsk（不詢問但提示）' },
   { value: 'bypassPermissions',  label: 'bypassPermissions（跳過所有確認）' },
+  { value: 'plan',               label: 'plan（計畫模式，僅規劃不執行）' },
+  { value: 'auto',               label: 'auto（全自動模式）' },
 ];
 
 const Permissions: React.FC = () => {
@@ -26,6 +34,9 @@ const Permissions: React.FC = () => {
   // 以 user 層為主要編輯對象
   const userSettings: ClaudeSettings = files.user.data ?? {};
   const perms = userSettings.permissions ?? { allow: [], ask: [], deny: [] };
+
+  // 判斷 defaultMode 是否被 managed 層鎖定
+  const { isManaged: defaultModeManaged } = useManagedField('permissions.defaultMode');
 
   // 新增規則的臨時狀態
   const [newTool, setNewTool]       = useState('Bash');
@@ -155,24 +166,76 @@ const Permissions: React.FC = () => {
 
       {/* Default Mode */}
       <div className="form-row">
-        <label className="form-label">Default Mode</label>
+        <label className="form-label">
+          Default Mode
+          {defaultModeManaged && <ManagedBadge />}
+        </label>
         <select
           value={perms.defaultMode ?? 'default'}
           onChange={(e) =>
             savePerms({ ...perms, defaultMode: e.target.value as DefaultMode })
           }
           style={{ maxWidth: 340 }}
+          disabled={defaultModeManaged}
         >
           {DEFAULT_MODES.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
       </div>
-      {perms.defaultMode === 'bypassPermissions' && (
+      {(perms.defaultMode === 'bypassPermissions' || perms.defaultMode === 'auto') && (
         <p style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: -8 }}>
-          ⚠️ bypassPermissions 會跳過所有權限確認，請謹慎使用
+          ⚠️ {perms.defaultMode} 模式會跳過所有權限確認，請謹慎使用
         </p>
       )}
+
+      <hr className="divider" />
+
+      {/* Additional Directories — 額外允許存取的目錄 */}
+      <div className="form-row">
+        <label className="form-label">Additional Directories</label>
+        <TagArrayInput
+          value={perms.additionalDirectories ?? []}
+          onChange={(v) =>
+            savePerms({ ...perms, additionalDirectories: v.length ? v : undefined })
+          }
+          placeholder="輸入目錄路徑後按 Enter"
+        />
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: -8 }}>
+        額外允許 Claude 存取的目錄（超出預設工作區的路徑）
+      </p>
+
+      <hr className="divider" />
+      <p className="section-title">安全限制</p>
+
+      {/* Disable Bypass Permissions Mode — 停用 bypass 模式 */}
+      <div className="form-row form-row--toggle">
+        <div>
+          <div className="form-label">Disable Bypass Permissions Mode</div>
+          <div className="form-hint">停用 bypassPermissions 模式，防止跳過所有確認</div>
+        </div>
+        <Toggle
+          checked={perms.disableBypassPermissionsMode ?? false}
+          onChange={(v) =>
+            savePerms({ ...perms, disableBypassPermissionsMode: v || undefined })
+          }
+        />
+      </div>
+
+      {/* Skip Dangerous Mode Permission Prompt — 略過危險模式確認提示 */}
+      <div className="form-row form-row--toggle">
+        <div>
+          <div className="form-label">Skip Dangerous Mode Permission Prompt</div>
+          <div className="form-hint">啟用危險模式時略過確認提示（不建議）</div>
+        </div>
+        <Toggle
+          checked={perms.skipDangerousModePermissionPrompt ?? false}
+          onChange={(v) =>
+            savePerms({ ...perms, skipDangerousModePermissionPrompt: v || undefined })
+          }
+        />
+      </div>
     </div>
   );
 };

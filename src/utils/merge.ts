@@ -47,7 +47,7 @@ export const mergeSettings = (
     'alwaysThinkingEnabled',
     'autoUpdates',
     'includeCoAuthoredBy',
-    'spinnerTips',
+    'spinnerTipsEnabled',
     'cleanupPeriodDays',
   ];
 

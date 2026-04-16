@@ -1,0 +1,148 @@
+/* KeyValuePairEditor 鍵值對編輯器樣式 */
+.kv-editor {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.kv-editor--disabled {
+  opacity: 0.5;
+}
+
+/* 表格 */
+.kv-editor__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* 表頭 */
+.kv-editor__head-row {
+  background: var(--bg-active);
+}
+
+.kv-editor__th {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kv-editor__th--key {
+  width: 35%;
+}
+
+.kv-editor__th--value {
+  width: auto;
+}
+
+.kv-editor__th--action {
+  width: 36px;
+}
+
+/* 資料列 */
+.kv-editor__row {
+  border-bottom: 1px solid var(--border);
+}
+
+.kv-editor__row:last-child {
+  border-bottom: none;
+}
+
+.kv-editor__row--new {
+  background: var(--bg-active);
+}
+
+.kv-editor__td {
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.kv-editor__td--action {
+  text-align: center;
+}
+
+/* 輸入框 */
+.kv-editor__input {
+  width: 100%;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.kv-editor__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  background: var(--bg-active);
+}
+
+.kv-editor__input--new {
+  border-color: var(--border);
+}
+
+.kv-editor__input::placeholder {
+  color: var(--text-secondary, #aaa);
+}
+
+/* 刪除按鈕 */
+.kv-editor__remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary, #888);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.kv-editor__remove-btn:hover {
+  background: var(--color-danger, #e53e3e);
+  border-color: var(--color-danger, #e53e3e);
+  color: white;
+}
+
+/* 新增按鈕 */
+.kv-editor__add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--color-accent);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.kv-editor__add-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 空狀態提示 */
+.kv-editor__empty {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  margin: 0;
+}

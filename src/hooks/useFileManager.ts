@@ -7,7 +7,7 @@ import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../store/settingsStore';
-import type { SettingsLayer, ClaudeSettings } from '../types/settings';
+import type { SettingsLayer, ClaudeSettings, GlobalSettings } from '../types/settings';
 
 // 快取家目錄，避免每次都呼叫 Tauri API
 let cachedHomeDir: string | null = null;
@@ -36,7 +36,7 @@ const resolvePath = async (path: string): Promise<string> => {
 
 /** 使用 Tauri FS 讀取並解析 JSON 設定檔 */
 export const useFileManager = () => {
-  const { updateFile, setProjectDir, setClaudeMd } = useAppStore();
+  const { updateFile, setProjectDir, setClaudeMd, updateGlobalFile } = useAppStore();
 
   /**
    * 載入單一設定層的檔案
@@ -103,11 +103,50 @@ export const useFileManager = () => {
   };
 
   /**
+   * 載入全域設定檔（~/.claude.json）
+   * 讀取並解析後更新 store 的 globalFile；
+   * 若檔案不存在設 status='missing'，JSON 無效設 status='invalid'
+   */
+  const loadGlobalSettings = async () => {
+    const rawPath = '%USERPROFILE%/.claude.json';
+    const path = await resolvePath(rawPath);
+    try {
+      const fileExists = await exists(path);
+      if (!fileExists) {
+        updateGlobalFile(null, '', 'missing', rawPath);
+        return;
+      }
+      const raw = await readTextFile(path);
+      const data: GlobalSettings = JSON.parse(raw);
+      updateGlobalFile(data, raw, 'ok', rawPath);
+    } catch (err) {
+      const status = String(err).includes('JSON') ? 'invalid' : 'missing';
+      updateGlobalFile(null, '', status, rawPath);
+    }
+  };
+
+  /**
+   * 儲存全域設定檔（~/.claude.json）
+   * 將 data 格式化為 JSON（2 空格縮排）寫入後更新 store
+   * @param data 全域設定資料
+   */
+  const saveGlobalFile = async (data: GlobalSettings): Promise<void> => {
+    const rawPath = '%USERPROFILE%/.claude.json';
+    const path = await resolvePath(rawPath);
+    const raw = JSON.stringify(data, null, 2);
+    await writeTextFile(path, raw);
+    updateGlobalFile(data, raw, 'ok', rawPath);
+    useAppStore.getState().setDirty(false);
+  };
+
+  /**
    * 載入 User 層設定（應用程式啟動時自動呼叫）
+   * 包含 settings.json、CLAUDE.md 以及全域設定 ~/.claude.json
    */
   const loadUserSettings = async () => {
     await loadFile('user', '%USERPROFILE%\\.claude\\settings.json');
     await loadClaudeMd('global', '%USERPROFILE%\\.claude\\CLAUDE.md');
+    await loadGlobalSettings();
   };
 
   /**
@@ -145,5 +184,7 @@ export const useFileManager = () => {
     openProject,
     loadClaudeMd,
     saveClaudeMd,
+    loadGlobalSettings,
+    saveGlobalFile,
   };
 };

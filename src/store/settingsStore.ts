@@ -6,6 +6,8 @@ import { create } from 'zustand';
 import type {
   AppState,
   ClaudeSettings,
+  GlobalSettings,
+  GlobalSettingsFile,
   SettingsLayer,
   TabId,
   FileStatus,
@@ -29,6 +31,14 @@ const DEFAULT_MANAGED_PATH = 'C:\\Program Files\\ClaudeCode\\managed-settings.js
 interface AppActions {
   /** 設定目前選取的 Tab */
   setActiveTab: (tab: TabId) => void;
+
+  /** 更新全域設定檔（~/.claude.json）資料 */
+  updateGlobalFile: (
+    data: GlobalSettings | null,
+    raw: string,
+    status: GlobalSettingsFile['status'],
+    path?: string
+  ) => void;
 
   /** 設定專案目錄路徑 */
   setProjectDir: (dir: string | null) => void;
@@ -59,6 +69,13 @@ const initialState: AppState = {
     project: emptyFile('project', ''),
     local:   emptyFile('local',   ''),
     managed: emptyFile('managed', DEFAULT_MANAGED_PATH),
+  },
+  // 全域設定檔初始狀態（~/.claude.json）
+  globalFile: {
+    path: '%USERPROFILE%/.claude.json',
+    status: 'missing',
+    data: null,
+    raw: '',
   },
   projectDir: null,
   activeTab: 'basic',
@@ -113,6 +130,17 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
     set((state) => ({
       claudeMd: { ...state.claudeMd, [scope]: content },
       isDirty: true,
+    })),
+
+  updateGlobalFile: (data, raw, status, path) =>
+    set((state) => ({
+      globalFile: {
+        ...state.globalFile,
+        ...(path ? { path } : {}),
+        data,
+        raw,
+        status,
+      },
     })),
 
   setDirty: (dirty) => set({ isDirty: dirty }),

@@ -1,0 +1,395 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "使用的 Claude 模型名稱"
+    },
+    "effortLevel": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "推理努力等級"
+    },
+    "availableModels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "可選模型清單"
+    },
+    "modelOverrides": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "模型別名覆蓋"
+    },
+    "agent": {
+      "type": "string",
+      "description": "使用的 agent 名稱"
+    },
+    "language": {
+      "type": "string",
+      "description": "回應語言"
+    },
+    "outputStyle": {
+      "type": "string",
+      "description": "輸出風格"
+    },
+    "alwaysThinkingEnabled": {
+      "type": "boolean",
+      "description": "始終使用延伸思考"
+    },
+    "showThinkingSummaries": {
+      "type": "boolean",
+      "description": "顯示思考摘要"
+    },
+    "autoUpdatesChannel": {
+      "type": "string",
+      "enum": ["stable", "latest"],
+      "description": "自動更新通道"
+    },
+    "autoUpdates": {
+      "type": "boolean",
+      "description": "是否啟用自動更新"
+    },
+    "prefersReducedMotion": {
+      "type": "boolean",
+      "description": "減少動畫"
+    },
+    "spinnerTipsEnabled": {
+      "type": "boolean",
+      "description": "啟用 spinner tips"
+    },
+    "spinnerTipsOverride": {
+      "type": "object",
+      "properties": {
+        "excludeDefault": { "type": "boolean" },
+        "tips": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["tips"],
+      "additionalProperties": false
+    },
+    "spinnerVerbs": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["replace", "append"]
+        },
+        "verbs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["mode", "verbs"],
+      "additionalProperties": false
+    },
+    "voiceEnabled": {
+      "type": "boolean",
+      "description": "啟用語音功能"
+    },
+    "includeCoAuthoredBy": {
+      "type": "boolean",
+      "description": "Commit 加入共同作者（已棄用）"
+    },
+    "includeGitInstructions": {
+      "type": "boolean",
+      "description": "包含 git 操作指引"
+    },
+    "attribution": {
+      "type": "object",
+      "properties": {
+        "commit": { "type": "string" },
+        "pr": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "respectGitignore": {
+      "type": "boolean",
+      "description": "遵守 .gitignore 規則"
+    },
+    "defaultShell": {
+      "type": "string",
+      "description": "預設 shell"
+    },
+    "disableAutoMode": {
+      "type": "boolean",
+      "description": "停用 auto 模式"
+    },
+    "useAutoModeDuringPlan": {
+      "type": "boolean",
+      "description": "plan 模式中使用 auto"
+    },
+    "fastModePerSessionOptIn": {
+      "type": "boolean",
+      "description": "每次 session 選擇 fast mode"
+    },
+    "autoMode": {
+      "type": "object",
+      "properties": {
+        "environment": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allow": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "soft_deny": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cleanupPeriodDays": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 365,
+      "description": "記錄清理週期（天）"
+    },
+    "autoMemoryDirectory": {
+      "type": "string",
+      "description": "自動記憶檔案目錄"
+    },
+    "plansDirectory": {
+      "type": "string",
+      "description": "Plan 檔案目錄"
+    },
+    "enableAllProjectMcpServers": {
+      "type": "boolean"
+    },
+    "enabledMcpjsonServers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "disabledMcpjsonServers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowedMcpServers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "deniedMcpServers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowManagedMcpServersOnly": {
+      "type": "boolean"
+    },
+    "mcpServers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["stdio", "sse", "http"]
+          },
+          "command": { "type": "string" },
+          "url": { "type": "string" },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      }
+    },
+    "enabledPlugins": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "channelsEnabled": {
+      "type": "boolean"
+    },
+    "allowedChannelPlugins": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blockedMarketplaces": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "strictKnownMarketplaces": {
+      "type": "boolean"
+    },
+    "extraKnownMarketplaces": {
+      "type": "array"
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "PreToolUse": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookEntry" }
+        },
+        "PostToolUse": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookEntry" }
+        },
+        "Notification": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookEntry" }
+        },
+        "Stop": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookEntry" }
+        },
+        "SubagentStop": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookEntry" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "disableAllHooks": {
+      "type": "boolean",
+      "description": "停用所有 hooks"
+    },
+    "allowedHttpHookUrls": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "httpHookAllowedEnvVars": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "allowManagedHooksOnly": {
+      "type": "boolean"
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "環境變數鍵值對"
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ask": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deny": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "defaultMode": {
+          "type": "string",
+          "enum": ["default", "acceptEdits", "dontAsk", "bypassPermissions", "plan", "auto"]
+        },
+        "additionalDirectories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "disableBypassPermissionsMode": {
+          "type": "boolean"
+        },
+        "skipDangerousModePermissionPrompt": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sandbox": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "failIfUnavailable": { "type": "boolean" },
+        "autoAllowBashIfSandboxed": { "type": "boolean" },
+        "excludedCommands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allowUnsandboxedCommands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "filesystem": {
+          "type": "object",
+          "properties": {
+            "allowWrite": { "type": "array", "items": { "type": "string" } },
+            "denyWrite": { "type": "array", "items": { "type": "string" } },
+            "denyRead": { "type": "array", "items": { "type": "string" } },
+            "allowRead": { "type": "array", "items": { "type": "string" } },
+            "allowManagedReadPathsOnly": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "network": {
+          "type": "object",
+          "properties": {
+            "allowUnixSockets": { "type": "boolean" },
+            "allowAllUnixSockets": { "type": "boolean" },
+            "allowLocalBinding": { "type": "boolean" },
+            "allowedDomains": { "type": "array", "items": { "type": "string" } },
+            "allowManagedDomainsOnly": { "type": "boolean" },
+            "httpProxyPort": { "type": "number" },
+            "socksProxyPort": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "enableWeakerNestedSandbox": { "type": "boolean" },
+        "enableWeakerNetworkIsolation": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "worktree": {
+      "type": "object",
+      "properties": {
+        "symlinkDirectories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sparsePaths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "apiKeyHelper": { "type": "string" },
+    "awsAuthRefresh": { "type": "string" },
+    "awsCredentialExport": { "type": "string" },
+    "forceLoginMethod": { "type": "string" },
+    "forceLoginOrgUUID": { "type": "string" },
+    "otelHeadersHelper": { "type": "string" },
+    "companyAnnouncements": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "pluginTrustMessage": { "type": "string" },
+    "feedbackSurveyRate": { "type": "number" },
+    "disableDeepLinkRegistration": { "type": "boolean" }
+  },
+  "definitions": {
+    "hookEntry": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "matcher": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["command", "http"]
+        },
+        "command": { "type": "string" },
+        "url": { "type": "string" },
+        "timeout": { "type": "number" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    }
+  }
+}

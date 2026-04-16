@@ -13,6 +13,10 @@ import EnvVars from './components/tabs/EnvVars';
 import ClaudeMd from './components/tabs/ClaudeMd';
 import MergePreview from './components/tabs/MergePreview';
 import JsonEditor from './components/tabs/JsonEditor';
+import SandboxTab from './components/tabs/SandboxTab';
+import McpPluginsTab from './components/tabs/McpPluginsTab';
+import AdvancedTab from './components/tabs/AdvancedTab';
+import GlobalTab from './components/tabs/GlobalTab';
 import { useAppStore } from './store/settingsStore';
 import { useFileManager } from './hooks/useFileManager';
 import { useTheme } from './hooks/useTheme';
@@ -24,6 +28,10 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   permissions: Permissions,
   hooks:       Hooks,
   env:         EnvVars,
+  sandbox:     SandboxTab,
+  mcp:         McpPluginsTab,
+  advanced:    AdvancedTab,
+  global:      GlobalTab,
   claudemd:    ClaudeMd,
   merge:       MergePreview,
   json:        JsonEditor,
