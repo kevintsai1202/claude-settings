@@ -1,0 +1,283 @@
+/* ══════════════════════════════════════════════════════════════
+   Claude Settings Manager — 全局樣式
+   深色主題（預設）+ 亮色主題切換
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── 深色主題（預設）─────────────────────────────────────────── */
+:root {
+  /* 背景層次 */
+  --bg-base:      #0a0a0a;
+  --bg-surface:   #111111;
+  --bg-elevated:  #1a1a1a;
+  --bg-hover:     #222222;
+  --bg-active:    #2a2a2a;
+
+  /* 邊框 */
+  --border:       rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(255, 255, 255, 0.35);
+
+  /* 文字 */
+  --text-primary:   #f0f0f0;
+  --text-secondary: #888888;
+  --text-muted:     #555555;
+  --text-accent:    #ffffff;
+
+  /* 強調色（最小使用）*/
+  --color-accent:  #7c3aed;
+  --color-accent-lt: #9f67ff;
+
+  /* 語意色 */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
+  --color-info:    #3b82f6;
+
+  /* 標籤 */
+  --tag-allow-bg:   rgba(16, 185, 129, 0.12);
+  --tag-allow-text: #34d399;
+  --tag-allow-border: rgba(16, 185, 129, 0.25);
+  --tag-ask-bg:     rgba(245, 158, 11, 0.12);
+  --tag-ask-text:   #fbbf24;
+  --tag-ask-border: rgba(245, 158, 11, 0.25);
+  --tag-deny-bg:    rgba(239, 68, 68, 0.12);
+  --tag-deny-text:  #f87171;
+  --tag-deny-border:rgba(239, 68, 68, 0.25);
+
+  /* 字體 */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+
+  /* 圓角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 佈局 */
+  --sidebar-width: 210px;
+  --tabbar-height: 44px;
+  --header-height: 48px;
+
+  /* 過渡 */
+  --transition: 150ms ease;
+}
+
+/* ─── 亮色主題 ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:      #f5f5f5;
+  --bg-surface:   #ffffff;
+  --bg-elevated:  #f0f0f0;
+  --bg-hover:     #e8e8e8;
+  --bg-active:    #e0e0e0;
+
+  --border:       rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-focus: rgba(0, 0, 0, 0.4);
+
+  --text-primary:   #111111;
+  --text-secondary: #555555;
+  --text-muted:     #999999;
+  --text-accent:    #000000;
+
+  --tag-allow-bg:   rgba(16, 185, 129, 0.1);
+  --tag-allow-text: #059669;
+  --tag-allow-border: rgba(16, 185, 129, 0.3);
+  --tag-ask-bg:     rgba(245, 158, 11, 0.1);
+  --tag-ask-text:   #d97706;
+  --tag-ask-border: rgba(245, 158, 11, 0.3);
+  --tag-deny-bg:    rgba(239, 68, 68, 0.1);
+  --tag-deny-text:  #dc2626;
+  --tag-deny-border:rgba(239, 68, 68, 0.3);
+}
+
+/* ─── 重設 ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ─── 捲動條 ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-focus); }
+
+/* ─── 按鈕基礎 ──────────────────────────────────────────────── */
+button {
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  transition: all var(--transition);
+}
+
+.btn-primary {
+  background: var(--text-primary);
+  color: var(--bg-base);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+}
+.btn-secondary:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  opacity: 0.7;
+}
+.btn-danger:hover { background: rgba(239, 68, 68, 0.1); opacity: 1; }
+
+.btn-icon {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.btn-icon:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ─── 輸入框 ────────────────────────────────────────────────── */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color var(--transition), background var(--transition);
+  width: 100%;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus { border-color: var(--border-focus); }
+input[type="text"]::placeholder,
+textarea::placeholder { color: var(--text-muted); }
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+select option { background: var(--bg-surface); }
+
+/* ─── 標籤 ──────────────────────────────────────────────────── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.tag-allow { background: var(--tag-allow-bg); color: var(--tag-allow-text); border: 1px solid var(--tag-allow-border); }
+.tag-ask   { background: var(--tag-ask-bg);   color: var(--tag-ask-text);   border: 1px solid var(--tag-ask-border); }
+.tag-deny  { background: var(--tag-deny-bg);  color: var(--tag-deny-text);  border: 1px solid var(--tag-deny-border); }
+
+/* ─── 狀態徽章 ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.badge-ok::before      { background: var(--color-success); }
+.badge-missing::before { background: var(--text-muted); }
+.badge-invalid::before { background: var(--color-danger); }
+.badge-readonly::before{ background: var(--color-warning); }
+
+/* ─── 分隔線 ────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* ─── 段落標題 ──────────────────────────────────────────────── */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ─── 捲動容器 ──────────────────────────────────────────────── */
+.scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ─── Monospace 文字 ────────────────────────────────────────── */
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ─── 來源標記 ──────────────────────────────────────────────── */
+.source-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.source-user    { background: rgba(124,58,237,0.15); color: #a78bfa; }
+.source-project { background: rgba(6,182,212,0.15);  color: #67e8f9; }
+.source-local   { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+.source-managed { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+.source-default { background: var(--bg-elevated); color: var(--text-muted); }

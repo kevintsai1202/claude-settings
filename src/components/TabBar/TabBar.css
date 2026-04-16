@@ -1,0 +1,56 @@
+/* TabBar 頂部導航樣式 */
+.tabbar {
+  display: flex;
+  align-items: center;
+  height: var(--tabbar-height);
+  padding: 0 8px;
+  gap: 1px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.tabbar::-webkit-scrollbar { height: 0; }
+
+.tabbar__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all var(--transition);
+  position: relative;
+}
+.tabbar__tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* active：底線而非背景色 */
+.tabbar__tab--active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.tabbar__tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+
+.tabbar__icon {
+  display: flex;
+  align-items: center;
+}
+
+.tabbar__label {
+  font-size: 13px;
+}
