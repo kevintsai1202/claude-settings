@@ -122,36 +122,38 @@ const App: React.FC = () => {
   }, [dirtyCount, canUndoAny]);
 
   /**
-   * 視窗關閉攔截（雙保險）
-   * 1. beforeunload — 處理 F5 刷新 / WebView 層級 unload
-   * 2. Tauri onCloseRequested — 處理使用者點 X / Alt+F4 關閉視窗
+   * 視窗關閉攔截 — 僅在有 dirty 時介入
+   * 無 dirty：不註冊 preventDefault，Tauri 預設關閉行為生效
+   * 有 dirty：preventDefault → ask() → 使用者確認後呼叫 win.destroy() 主動關閉
+   *   （不依賴「不呼叫 preventDefault 即關閉」的預設行為，避免 Tauri v2 async handler 時序問題）
    */
   useEffect(() => {
-    // ── beforeunload（標準 DOM） ──
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (dirtyCount > 0) {
-        e.preventDefault();
-        e.returnValue = `還有 ${dirtyCount} 個檔案未儲存`;
-        return e.returnValue;
-      }
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
-
-    // ── Tauri 原生視窗關閉攔截 ──
     let unlisten: (() => void) | undefined;
+    let cancelled = false;
+
     (async () => {
       try {
         const { getCurrentWindow } = await import('@tauri-apps/api/window');
         const { ask } = await import('@tauri-apps/plugin-dialog');
         const win = getCurrentWindow();
+        if (cancelled) return;
         unlisten = await win.onCloseRequested(async (event) => {
           const count = getTotalDirtyCount(useAppStore.getState());
-          if (count === 0) return;
+          if (count === 0) {
+            // 無未儲存變更 — 直接放行，不做任何事
+            return;
+          }
+          // 有未儲存變更 — 先攔下事件，顯示確認對話框
+          event.preventDefault();
           const confirmed = await ask(
-            `還有 ${count} 個檔案未儲存，關閉後變更將遺失。\n\n確定關閉？（按「取消」可先儲存）`,
-            { title: '未儲存的變更', kind: 'warning' }
+            `還有 ${count} 個檔案未儲存，關閉後變更將遺失。\n\n確定關閉？`,
+            { title: '未儲存的變更', kind: 'warning', okLabel: '確定關閉', cancelLabel: '取消' }
           );
-          if (!confirmed) event.preventDefault();
+          if (confirmed) {
+            // 使用者確認關閉 — 主動 destroy
+            await win.destroy();
+          }
+          // 否則保持攔下，視窗維持開啟
         });
       } catch {
         // 非 Tauri 環境（dev in browser）忽略
@@ -159,10 +161,10 @@ const App: React.FC = () => {
     })();
 
     return () => {
-      window.removeEventListener('beforeunload', onBeforeUnload);
+      cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [dirtyCount]);
+  }, []);
 
   const ActiveTab = TAB_COMPONENTS[activeTab] ?? BasicSettings;
 
