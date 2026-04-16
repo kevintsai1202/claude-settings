@@ -121,50 +121,8 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirtyCount, canUndoAny]);
 
-  /**
-   * 視窗關閉攔截 — 僅在有 dirty 時介入
-   * 無 dirty：不註冊 preventDefault，Tauri 預設關閉行為生效
-   * 有 dirty：preventDefault → ask() → 使用者確認後呼叫 win.destroy() 主動關閉
-   *   （不依賴「不呼叫 preventDefault 即關閉」的預設行為，避免 Tauri v2 async handler 時序問題）
-   */
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        const { ask } = await import('@tauri-apps/plugin-dialog');
-        const win = getCurrentWindow();
-        if (cancelled) return;
-        unlisten = await win.onCloseRequested(async (event) => {
-          const count = getTotalDirtyCount(useAppStore.getState());
-          if (count === 0) {
-            // 無未儲存變更 — 直接放行，不做任何事
-            return;
-          }
-          // 有未儲存變更 — 先攔下事件，顯示確認對話框
-          event.preventDefault();
-          const confirmed = await ask(
-            `還有 ${count} 個檔案未儲存，關閉後變更將遺失。\n\n確定關閉？`,
-            { title: '未儲存的變更', kind: 'warning', okLabel: '確定關閉', cancelLabel: '取消' }
-          );
-          if (confirmed) {
-            // 使用者確認關閉 — 主動 destroy
-            await win.destroy();
-          }
-          // 否則保持攔下，視窗維持開啟
-        });
-      } catch {
-        // 非 Tauri 環境（dev in browser）忽略
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      if (unlisten) unlisten();
-    };
-  }, []);
+  // 註：不註冊 Tauri onCloseRequested — 該 API 在 v2 會讓視窗無法關閉
+  // 未儲存提醒改由 Header 的橘色徽章 + 脈動儲存鈕負責，Ctrl+S 隨時可存
 
   const ActiveTab = TAB_COMPONENTS[activeTab] ?? BasicSettings;
 
