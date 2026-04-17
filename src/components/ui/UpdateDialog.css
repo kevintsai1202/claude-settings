@@ -1,0 +1,191 @@
+/* UpdateDialog — 自動更新對話框樣式 */
+
+/* 半透明遮罩，覆蓋整個視窗 */
+.update-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: update-dialog-fade-in 150ms ease;
+}
+
+@keyframes update-dialog-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 對話框本體 */
+.update-dialog {
+  background: var(--bg-base, #ffffff);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: min(560px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* 標題列 */
+.update-dialog__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.update-dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+.update-dialog__version {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-active);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* 內容區（含 release notes） */
+.update-dialog__body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.update-dialog__notes-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.update-dialog__notes {
+  background: var(--bg-active);
+  padding: 12px 14px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: monospace;
+  font-size: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* 進度條 */
+.update-dialog__progress-wrapper {
+  margin-top: 12px;
+}
+
+.update-dialog__progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.update-dialog__progress-bar {
+  height: 8px;
+  background: var(--bg-active);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.update-dialog__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  border-radius: 4px;
+  transition: width 200ms ease;
+}
+
+.update-dialog__progress-fill--indeterminate {
+  width: 30%;
+  animation: update-dialog-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes update-dialog-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* 錯誤訊息 */
+.update-dialog__error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+/* 按鈕區 */
+.update-dialog__footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  background: var(--bg-active);
+}
+
+.update-dialog__btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-base, #ffffff);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.update-dialog__btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.update-dialog__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.update-dialog__btn--primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.update-dialog__btn--primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.update-dialog__btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+/* 旋轉動畫（用於 checking / downloading 狀態的 icon） */
+.update-dialog .spin {
+  animation: update-dialog-spin 1s linear infinite;
+}
+
+@keyframes update-dialog-spin {
+  to { transform: rotate(360deg); }
+}

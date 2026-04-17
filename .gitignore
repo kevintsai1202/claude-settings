@@ -18,6 +18,10 @@ image/
 check_ts.ps1
 null
 
+# Tauri updater 簽章金鑰：私鑰絕不可上 git，公鑰可保留
+src-tauri/.tauri/*.key
+!src-tauri/.tauri/*.key.pub
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -3,9 +3,13 @@
  * 應用程式啟動時自動載入 User 層設定
  */
 import React, { useEffect, useState } from 'react';
-import { Settings, Sun, Moon, Save, Undo2 } from 'lucide-react';
+import { Settings, Sun, Moon, Save, Undo2, Download } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { getVersion } from '@tauri-apps/api/app';
 import Sidebar from './components/Sidebar/Sidebar';
+import UpdateDialog from './components/ui/UpdateDialog';
+import { useUpdater } from './hooks/useUpdater';
+import { shouldNotify } from './utils/skippedVersion';
 import TabBar from './components/TabBar/TabBar';
 import BasicSettings from './components/tabs/BasicSettings';
 import Permissions from './components/tabs/Permissions';
@@ -62,6 +66,14 @@ const App: React.FC = () => {
   /** 儲存後短暫顯示 toast */
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
+  /** App 版本號（從 Cargo.toml 動態讀取，避免硬編碼跟 release 不同步） */
+  const [appVersion, setAppVersion] = useState<string>('');
+
+  /** 自動更新流程 */
+  const updater = useUpdater();
+  /** 控制 UpdateDialog 顯示時機（自動檢查時可能想靜默） */
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+
   /** 計算目前 dirty 檔案數 */
   const dirtyCount = getTotalDirtyCount(useAppStore.getState());
 
@@ -76,6 +88,7 @@ const App: React.FC = () => {
   useEffect(() => {
     loadUserSettings();
     loadAllResources();
+    void getVersion().then(setAppVersion);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,6 +97,43 @@ const App: React.FC = () => {
     loadAllResources();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
+
+  /**
+   * 啟動延遲 5 秒後在背景檢查更新
+   * 太快（<3s）會跟初始 render 競爭 UI 資源；太慢（>10s）使用者已開始操作會被打擾
+   * 自動檢查的「靜默規則」由下方 useEffect + shouldNotify('auto') 共同決定：
+   *   - up-to-date / error：updateDialogOpen 維持 false，使用者無感
+   *   - available 但已跳過此版本：同樣靜默
+   *   - available 且未跳過：彈出對話框
+   */
+  useEffect(() => {
+    const AUTO_CHECK_DELAY_MS = 5000;
+    const timer = setTimeout(() => {
+      void updater.checkForUpdate();
+    }, AUTO_CHECK_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * 監聽 updater 狀態變化，依規則決定要不要打開對話框
+   * 自動檢查時：only show 'available' (filtered by shouldNotify)
+   * 手動檢查時：always show
+   */
+  useEffect(() => {
+    if (updater.status === 'available' && updater.update) {
+      // 自動檢查預設用 'auto'，手動觸發時由 handleManualCheck 直接設 open=true
+      if (shouldNotify(updater.update.version, 'auto')) {
+        setUpdateDialogOpen(true);
+      }
+    }
+  }, [updater.status, updater.update]);
+
+  /** 手動檢查更新：開對話框並觸發檢查（無論結果為何都顯示） */
+  const handleManualCheck = () => {
+    setUpdateDialogOpen(true);
+    void updater.checkForUpdate();
+  };
 
   /** 儲存全部 dirty 檔案 */
   const handleSaveAll = async () => {
@@ -139,7 +189,7 @@ const App: React.FC = () => {
             <Settings size={16} />
           </span>
           <span className="app-header__title">Claude Settings Manager</span>
-          <span className="app-header__version">v3.0.1</span>
+          {appVersion && <span className="app-header__version">v{appVersion}</span>}
         </div>
 
         <div className="app-header__right">
@@ -177,6 +227,16 @@ const App: React.FC = () => {
             <span>儲存全部{dirtyCount > 0 ? ` (${dirtyCount})` : ''}</span>
           </button>
 
+          {/* 手動檢查更新按鈕 */}
+          <button
+            className="theme-toggle"
+            onClick={handleManualCheck}
+            title="檢查是否有新版本"
+            aria-label="Check for updates"
+          >
+            <Download size={14} />
+          </button>
+
           {/* GitHub 儲存庫連結（使用 Tauri opener 在系統瀏覽器開啟） */}
           <button
             className="theme-toggle"
@@ -205,6 +265,13 @@ const App: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* 自動更新對話框（受 updateDialogOpen 控制） */}
+      <UpdateDialog
+        updater={updater}
+        isOpen={updateDialogOpen}
+        onClose={() => setUpdateDialogOpen(false)}
+      />
 
       {/* 主體：左側欄 + 右側內容 */}
       <div className="app-body">

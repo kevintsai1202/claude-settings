@@ -51,11 +51,17 @@ jobs:
       #   - 然後 cargo build release；依 runner 自動產生：
       #     · Windows → NSIS(.exe) + MSI(.msi)
       #     · macOS   → DMG(.dmg) + app bundle
+      #   - 因 tauri.conf.json 設了 createUpdaterArtifacts:true 且提供簽章金鑰，
+      #     會額外產出 .sig 簽章檔與 latest.json，並上傳至同一個 release
       #   - 最後建立 draft release 並上傳產物
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 自動更新所需的 Ed25519 私鑰；存於 GitHub repo Settings → Secrets and variables → Actions
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # 私鑰密碼（產生金鑰時若未設密碼，可保持為空字串）
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Claude Settings Manager ${{ github.ref_name }}'
