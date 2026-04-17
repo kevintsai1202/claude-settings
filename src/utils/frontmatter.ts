@@ -81,6 +81,7 @@ export function asString(v: string | string[] | undefined): string | undefined {
  * - string 值在含特殊字元(: # 或首尾空白)時自動加雙引號
  * - string[] 輸出成 [a, b, c] 格式
  * - 若 data 為空物件,則不輸出 frontmatter 區塊(僅回傳 body)
+ * - 已知限制:值若同時含雙引號與冒號/井號,parseFrontmatter 不會反轉 \" 轉義(round-trip 非完全對稱)
  */
 export function stringifyFrontmatter(
   data: Record<string, string | string[] | undefined>,
@@ -91,7 +92,7 @@ export function stringifyFrontmatter(
   );
 
   if (entries.length === 0) {
-    return body.startsWith('\n') ? body.slice(1) : body;
+    return body;
   }
 
   const yamlLines = entries.map(([key, value]) => {
@@ -99,7 +100,7 @@ export function stringifyFrontmatter(
       const items = value.map((v) => quoteIfNeeded(v)).join(', ');
       return `${key}: [${items}]`;
     }
-    return `${key}: ${quoteIfNeeded(value as string)}`;
+    return `${key}: ${quoteIfNeeded(String(value))}`;
   });
 
   const yamlBlock = yamlLines.join('\n');
