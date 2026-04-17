@@ -10,7 +10,15 @@ import { readTextFile, readDir, exists } from '@tauri-apps/plugin-fs';
 import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../store/settingsStore';
 import { parseFrontmatter, asString, asStringArray } from '../utils/frontmatter';
-import type { AgentFile, CommandFile, OutputStyleFile, SkillFile } from '../types/settings';
+import type {
+  AgentFile,
+  CommandFile,
+  OutputStyleFile,
+  SkillFile,
+  RuleFile,
+  MemoryFile,
+  MemoryType,
+} from '../types/settings';
 
 // 內建 output style（Claude Code 官方提供，無對應檔案）
 const BUILTIN_OUTPUT_STYLES: OutputStyleFile[] = [
@@ -63,6 +71,35 @@ async function readMarkdown(path: string): Promise<{ data: Record<string, string
   } catch {
     return null;
   }
+}
+
+/**
+ * 遞迴列出目錄下所有 .md 檔案
+ * 回傳相對於 rootDir 的路徑（含 .md），用於 Rules 的巢狀掃描
+ */
+async function listMdFilesRecursive(
+  rootDir: string,
+  subDir = '',
+): Promise<{ relPath: string; absPath: string }[]> {
+  const results: { relPath: string; absPath: string }[] = [];
+  const currentDir = subDir ? `${rootDir}/${subDir}` : rootDir;
+  try {
+    const dirOk = await exists(currentDir);
+    if (!dirOk) return results;
+    const entries = await readDir(currentDir);
+    for (const entry of entries) {
+      const childRel = subDir ? `${subDir}/${entry.name}` : entry.name;
+      if (entry.isDirectory) {
+        const nested = await listMdFilesRecursive(rootDir, childRel);
+        results.push(...nested);
+      } else if (entry.isFile && entry.name.endsWith('.md')) {
+        results.push({ relPath: childRel, absPath: `${currentDir}/${entry.name}` });
+      }
+    }
+  } catch {
+    // 單一子目錄讀取失敗時不影響其他
+  }
+  return results;
 }
 
 export const useResourceLoader = () => {
@@ -240,9 +277,141 @@ export const useResourceLoader = () => {
     setOutputStyles(results);
   };
 
+  /**
+   * 讀取 rules（user + project）
+   * 遞迴掃描 .claude/rules/ 下所有 .md，保留相對路徑支援巢狀分類
+   */
+  const loadRules = async (): Promise<void> => {
+    const home = await resolveHome();
+    const project = resolveProject();
+    const sources: Array<{ scope: 'user' | 'project'; dir: string }> = [
+      { scope: 'user', dir: `${home}/.claude/rules` },
+    ];
+    if (project) sources.push({ scope: 'project', dir: `${project}/.claude/rules` });
+
+    const results: RuleFile[] = [];
+    for (const src of sources) {
+      const files = await listMdFilesRecursive(src.dir);
+      for (const f of files) {
+        const parsed = await readMarkdown(f.absPath);
+        if (!parsed) continue;
+        const { data, body } = parsed;
+        // 去掉尾端 .md 作為顯示名
+        const displayName = f.relPath.replace(/\.md$/, '');
+        results.push({
+          id: `${src.scope}:${f.relPath}`,
+          scope: src.scope,
+          name: displayName,
+          description: asString(data.description),
+          paths: asStringArray(data.paths),
+          path: f.absPath,
+          relPath: f.relPath,
+          body,
+        });
+      }
+    }
+    useAppStore.getState().setRules(results);
+  };
+
+  /**
+   * 將專案路徑轉為 Claude Code 的 memory slug
+   * 規則：全部路徑分隔符（: / \）替換為 "-"
+   * 範例：d:/GitHub/claude-settings → d--GitHub-claude-settings
+   */
+  const slugifyProjectPath = (projectPath: string): string => {
+    return projectPath.replace(/[:/\\]/g, '-');
+  };
+
+  /**
+   * 解析目前專案的 auto memory 資料夾
+   * 優先順序：user settings.autoMemoryDirectory > slug 推導
+   * @returns 絕對路徑（正斜線）或 null
+   */
+  const resolveMemoryDir = async (): Promise<string | null> => {
+    const state = useAppStore.getState();
+    const customDir = state.files.user.data?.autoMemoryDirectory;
+    if (customDir && customDir.trim()) {
+      // 展開 ~ 為家目錄
+      if (customDir.startsWith('~')) {
+        const home = await resolveHome();
+        return (home + customDir.slice(1)).replace(/\\/g, '/');
+      }
+      return customDir.replace(/\\/g, '/');
+    }
+    const project = resolveProject();
+    if (!project) return null;
+    const home = await resolveHome();
+    const slug = slugifyProjectPath(project);
+    return `${home}/.claude/projects/${slug}/memory`;
+  };
+
+  /**
+   * 讀取 auto memory 檔案清單
+   * MEMORY.md 作為索引特別標示；topic files 解析 frontmatter name/description/type
+   */
+  const loadMemory = async (): Promise<void> => {
+    const dir = await resolveMemoryDir();
+    if (!dir) {
+      useAppStore.getState().setMemory([], null);
+      return;
+    }
+    try {
+      const dirOk = await exists(dir);
+      if (!dirOk) {
+        useAppStore.getState().setMemory([], dir);
+        return;
+      }
+    } catch {
+      useAppStore.getState().setMemory([], dir);
+      return;
+    }
+
+    const files = await listMdFiles(dir);
+    const results: MemoryFile[] = [];
+    for (const f of files) {
+      try {
+        const raw = await readTextFile(f.path);
+        const isIndex = f.name === 'MEMORY.md';
+        const parsed = parseFrontmatter(raw);
+        const typeVal = asString(parsed.data.type);
+        const memoryType: MemoryType | undefined =
+          typeVal === 'user' || typeVal === 'feedback' || typeVal === 'project' || typeVal === 'reference'
+            ? typeVal
+            : undefined;
+        results.push({
+          id: f.name,
+          fileName: f.name,
+          isIndex,
+          displayName: isIndex ? undefined : asString(parsed.data.name),
+          description: asString(parsed.data.description),
+          memoryType,
+          path: f.path,
+          body: parsed.body,
+          raw,
+        });
+      } catch {
+        // 讀檔失敗則略過該檔，不影響其他
+      }
+    }
+    // 排序：MEMORY.md 永遠在最前
+    results.sort((a, b) => {
+      if (a.isIndex) return -1;
+      if (b.isIndex) return 1;
+      return a.fileName.localeCompare(b.fileName);
+    });
+    useAppStore.getState().setMemory(results, dir);
+  };
+
   /** 一次載入所有資源 */
   const loadAllResources = async (): Promise<void> => {
-    await Promise.all([loadAgents(), loadCommands(), loadOutputStyles(), loadSkills()]);
+    await Promise.all([
+      loadAgents(),
+      loadCommands(),
+      loadOutputStyles(),
+      loadSkills(),
+      loadRules(),
+      loadMemory(),
+    ]);
   };
 
   return {
@@ -250,6 +419,8 @@ export const useResourceLoader = () => {
     loadCommands,
     loadOutputStyles,
     loadSkills,
+    loadRules,
+    loadMemory,
     loadAllResources,
   };
 };

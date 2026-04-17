@@ -385,6 +385,18 @@ const AdvancedTab: React.FC = () => {
         <span className="form-hint">意見調查觸發機率（0 = 不顯示，1 = 每次顯示）</span>
       </div>
 
+      {/* Auto Memory 啟用開關 */}
+      <div className="form-row form-row--toggle">
+        <div>
+          <div className="form-label">Auto Memory Enabled</div>
+          <div className="form-hint">啟用 Claude 自動記憶功能（預設開啟，需 v2.1.59+）</div>
+        </div>
+        <Toggle
+          checked={data.autoMemoryEnabled ?? true}
+          onChange={(v) => update({ autoMemoryEnabled: v })}
+        />
+      </div>
+
       {/* Auto Memory Directory */}
       <div className="form-row">
         <label className="form-label">Auto Memory Directory</label>
@@ -436,6 +448,21 @@ const AdvancedTab: React.FC = () => {
           style={{ width: 120 }}
         />
         <span className="form-hint">對話記錄的自動清理週期（天數）</span>
+      </div>
+
+      {/* CLAUDE.md / Rules 排除清單（glob 陣列） */}
+      <div className="form-row" style={{ alignItems: 'flex-start' }}>
+        <label className="form-label" style={{ paddingTop: 6 }}>CLAUDE.md Excludes</label>
+        <div style={{ flex: 1 }}>
+          <TagArrayInput
+            value={data.claudeMdExcludes ?? []}
+            onChange={(v) => update({ claudeMdExcludes: v.length ? v : undefined })}
+            placeholder="glob 模式，例如 **/monorepo/CLAUDE.md"
+          />
+          <div className="form-hint" style={{ marginTop: 4 }}>
+            要排除的 CLAUDE.md 或 .claude/rules/ 路徑（monorepo 忽略他隊設定用）；各層陣列合并。Managed 層不可排除。
+          </div>
+        </div>
       </div>
 
     </div>

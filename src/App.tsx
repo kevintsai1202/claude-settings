@@ -26,6 +26,8 @@ import AgentsTab from './components/tabs/AgentsTab';
 import CommandsTab from './components/tabs/CommandsTab';
 import OutputStylesTab from './components/tabs/OutputStylesTab';
 import SkillsTab from './components/tabs/SkillsTab';
+import RulesTab from './components/tabs/RulesTab';
+import MemoryTab from './components/tabs/MemoryTab';
 import StatusLineTab from './components/tabs/StatusLineTab';
 import { useAppStore, getTotalDirtyCount } from './store/settingsStore';
 import { useFileManager } from './hooks/useFileManager';
@@ -49,6 +51,8 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   commands:     CommandsTab,
   outputstyles: OutputStylesTab,
   skills:       SkillsTab,
+  rules:        RulesTab,
+  memory:       MemoryTab,
   statusline:   StatusLineTab,
   advanced:     AdvancedTab,
   global:       GlobalTab,

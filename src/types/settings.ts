@@ -79,8 +79,8 @@ export interface EnvEntry {
 }
 
 // ─── 基本設定 ──────────────────────────────────────────────
-/** 努力等級（max 為 Claude 4.7 起新增的最高推理等級） */
-export type EffortLevel = 'low' | 'medium' | 'high' | 'max';
+/** 努力等級（xhigh 為 Opus 4.7 預設；max 為 Claude 4.7 起新增的最高推理等級） */
+export type EffortLevel = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 /** 更新通道 */
 export type UpdateChannel = 'stable' | 'latest';
@@ -218,6 +218,40 @@ export interface OutputStyleFile {
   body: string;
 }
 
+/**
+ * Auto Memory 檔案類型
+ * 對應使用者 CLAUDE.md 指引中的四種類別（MEMORY.md 索引檔不使用此欄位）
+ */
+export type MemoryType = 'user' | 'feedback' | 'project' | 'reference';
+
+/**
+ * Auto Memory 檔案（~/.claude/projects/<slug>/memory/*.md）
+ * 分為 MEMORY.md（索引，每次 session 前 200 行載入）與 topic files（按需讀取）
+ */
+export interface MemoryFile {
+  id: string;                 // 檔名作為唯一 ID
+  fileName: string;           // 檔名（含 .md，例如 "debugging.md"）
+  isIndex: boolean;           // 是否為 MEMORY.md
+  displayName?: string;       // frontmatter.name（非 index 檔案才有）
+  description?: string;       // frontmatter.description
+  memoryType?: MemoryType;    // frontmatter.type
+  path: string;               // 檔案絕對路徑
+  body: string;               // frontmatter 之後的主體
+  raw: string;                // 原始完整檔案內容（for MEMORY.md 直接顯示與編輯）
+}
+
+/** Rule 檔案（.claude/rules/*.md，支援巢狀子資料夾） */
+export interface RuleFile {
+  id: string;                   // 以 scope + relPath 組成，唯一識別
+  scope: 'user' | 'project';    // 來源範圍
+  name: string;                 // 相對於 rules/ 的路徑（不含 .md，例如 "frontend/testing"）
+  description?: string;         // frontmatter.description（可選）
+  paths?: string[];             // frontmatter.paths glob 清單；空代表無條件載入
+  path: string;                 // .md 檔案絕對路徑
+  relPath: string;              // 相對於 rules/ 的完整路徑（含 .md，用於顯示與 id）
+  body: string;                 // frontmatter 之後的內容
+}
+
 /** Skill 檔案（.../<skill>/SKILL.md） */
 export interface SkillFile {
   id: string;
@@ -278,8 +312,10 @@ export interface ClaudeSettings {
 
   // ── 資料管理 ──
   cleanupPeriodDays?: number;              // 記錄清理週期（天）
+  autoMemoryEnabled?: boolean;             // 啟用自動記憶（預設 true）
   autoMemoryDirectory?: string;            // 自動記憶檔案目錄
   plansDirectory?: string;                 // Plan 檔案目錄
+  claudeMdExcludes?: string[];             // 要排除的 CLAUDE.md / rules 路徑 glob 清單
 
   // ── MCP 設定 ──
   enableAllProjectMcpServers?: boolean;    // 啟用所有專案 MCP servers
@@ -386,6 +422,8 @@ export type TabId =
   | 'commands'
   | 'outputstyles'
   | 'skills'
+  | 'rules'
+  | 'memory'
   | 'statusline'
   | 'advanced'
   | 'global'
@@ -431,4 +469,10 @@ export interface AppState {
   outputStyles: OutputStyleFile[];
   // Skills 清單（user + project）
   skills: SkillFile[];
+  // Rules 清單（user + project）
+  rules: RuleFile[];
+  // Auto memory 檔案清單（當前專案）
+  memoryFiles: MemoryFile[];
+  // 計算出的 auto memory 資料夾絕對路徑（null 表示未選擇專案或無法解析）
+  memoryDir: string | null;
 }

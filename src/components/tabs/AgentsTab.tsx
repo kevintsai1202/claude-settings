@@ -49,13 +49,14 @@ const AGENT_FIELDS: FieldDef[] = [
   },
 ];
 
-/** 編輯器模式：idle / create / edit */
+/** 編輯器模式：idle / create / edit；create 支援同時寫入 user+project */
+type AgentScope = 'user' | 'project';
 type EditorMode =
   | { kind: 'idle' }
-  | { kind: 'create'; scope: 'user' | 'project' }
+  | { kind: 'create'; scopes: AgentScope[] }
   | { kind: 'edit'; agentId: string };
 
-type ScopeFilter = 'all' | 'user' | 'project';
+type ScopeFilter = 'all' | AgentScope;
 
 const AgentsTab: React.FC = () => {
   const { agents, projectDir } = useAppStore();
@@ -70,8 +71,8 @@ const AgentsTab: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** 編輯器模式 */
   const [mode, setMode] = useState<EditorMode>({ kind: 'idle' });
-  /** 最近套用的範本 ID，用於顯示 2 秒確認動畫 */
-  const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
+  /** 最近套用的範本鍵值 `${templateId}:${scope}`，用於顯示 2 秒確認動畫 */
+  const [appliedKey, setAppliedKey] = useState<string | null>(null);
   /** 範本來源過濾：all / official / community */
   const [templateFilter, setTemplateFilter] = useState<'all' | 'official' | 'community'>('all');
 
@@ -107,7 +108,7 @@ const AgentsTab: React.FC = () => {
   );
 
   /** 解析 agents 目錄路徑(user 範圍使用 %USERPROFILE% placeholder) */
-  const resolveAgentDir = (agentScope: 'user' | 'project'): string => {
+  const resolveAgentDir = (agentScope: AgentScope): string => {
     if (agentScope === 'project') {
       if (!projectDir) throw new Error('尚未選擇專案目錄');
       return `${projectDir}/.claude/agents`;
@@ -115,8 +116,20 @@ const AgentsTab: React.FC = () => {
     return '%USERPROFILE%/.claude/agents';
   };
 
+  /** 切換 create 模式下某個 scope 的勾選狀態（至少保留一個） */
+  const toggleCreateScope = (target: AgentScope) => {
+    if (mode.kind !== 'create') return;
+    const has = mode.scopes.includes(target);
+    const next = has
+      ? mode.scopes.filter((s) => s !== target)
+      : [...mode.scopes, target];
+    if (next.length === 0) return; // 禁止全部取消
+    setMode({ kind: 'create', scopes: next });
+  };
+
   /**
    * 儲存 Agent（新建或更新）
+   * create 模式下可同時寫入多個 scope（user/project），其一失敗時回報失敗清單
    * @param data 表單欄位資料
    * @param body Markdown 內文
    */
@@ -131,8 +144,25 @@ const AgentsTab: React.FC = () => {
     }
     const content = stringifyFrontmatter(data, body);
     if (mode.kind === 'create') {
-      const dir = resolveAgentDir(mode.scope);
-      await createResourceFile(`${dir}/${name}.md`, content);
+      if (mode.scopes.length === 0) {
+        throw new Error('請至少勾選一個範圍（User / Project）');
+      }
+      // 逐一寫入各勾選的 scope，收集錯誤後一起回報
+      const failures: string[] = [];
+      for (const s of mode.scopes) {
+        try {
+          const dir = resolveAgentDir(s);
+          await createResourceFile(`${dir}/${name}.md`, content);
+        } catch (err) {
+          failures.push(`${s}: ${String(err).replace(/^Error:\s*/, '')}`);
+        }
+      }
+      if (failures.length > 0 && failures.length === mode.scopes.length) {
+        throw new Error(`全部範圍皆建立失敗：\n${failures.join('\n')}`);
+      }
+      if (failures.length > 0) {
+        window.alert(`部分範圍建立失敗：\n${failures.join('\n')}`);
+      }
     } else {
       const target = agents.find((a) => a.id === mode.agentId);
       if (!target) throw new Error('找不到目標 Agent');
@@ -149,20 +179,6 @@ const AgentsTab: React.FC = () => {
     setMode({ kind: 'idle' });
   };
 
-  /**
-   * 決定範本套用的目標範圍：優先遵循當前 scope filter
-   * 若 filter 為 'all'，回退到範本自身的 preferredScope；仍為 'any' 時用 user
-   * 若目標是 project 但尚未開啟專案，回傳 null 告知呼叫端應阻擋
-   */
-  const resolveTemplateScope = (tpl: AgentTemplate): 'user' | 'project' | null => {
-    let target: 'user' | 'project';
-    if (scope === 'project') target = 'project';
-    else if (scope === 'user') target = 'user';
-    else target = tpl.preferredScope === 'project' ? 'project' : 'user';
-
-    if (target === 'project' && !projectDir) return null;
-    return target;
-  };
 
   /**
    * 嘗試建立檔案；若檔名已存在，依序嘗試 name-1.md / name-2.md ... 最多 100 次
@@ -186,16 +202,15 @@ const AgentsTab: React.FC = () => {
   };
 
   /**
-   * 套用範本：把 AgentTemplate 轉成 .md 檔直接寫入對應目錄
+   * 套用範本：把 AgentTemplate 轉成 .md 檔寫入指定 scope 目錄
    * @param tpl 要套用的範本
+   * @param target 寫入範圍：user 或 project
    */
-  const applyTemplate = async (tpl: AgentTemplate) => {
-    const targetScope = resolveTemplateScope(tpl);
-    if (!targetScope) {
-      window.alert('此範本建議寫入 Project 範圍，但尚未開啟專案目錄。\n請先於左下「開啟專案」或切換範圍到 User。');
+  const applyTemplate = async (tpl: AgentTemplate, target: AgentScope) => {
+    if (target === 'project' && !projectDir) {
+      window.alert('尚未開啟專案目錄，請先於左下「開啟專案」。');
       return;
     }
-    const dir = resolveAgentDir(targetScope);
     const content = stringifyFrontmatter(
       {
         name: tpl.name,
@@ -206,16 +221,17 @@ const AgentsTab: React.FC = () => {
       tpl.body,
     );
     try {
+      const dir = resolveAgentDir(target);
       const finalName = await createWithSuffix(dir, tpl.name, content);
       await loadAgents();
-      setAppliedTemplateId(tpl.id);
-      setTimeout(() => setAppliedTemplateId(null), 2000);
-      // 若有自動加後綴，提示使用者
+      const key = `${tpl.id}:${target}`;
+      setAppliedKey(key);
+      setTimeout(() => setAppliedKey((k) => (k === key ? null : k)), 2000);
       if (finalName !== tpl.name) {
-        window.alert(`偵測到同名 agent，已改以「${finalName}.md」建立。`);
+        window.alert(`偵測到同名 agent，已改以「${finalName}.md」建立於 ${target}。`);
       }
     } catch (err) {
-      window.alert(`套用失敗：${String(err)}`);
+      window.alert(`套用到 ${target} 失敗：${String(err).replace(/^Error:\s*/, '')}`);
     }
   };
 
@@ -266,7 +282,17 @@ const AgentsTab: React.FC = () => {
         <button
           className="btn-primary"
           style={{ padding: '6px 12px', fontSize: 12 }}
-          onClick={() => setMode({ kind: 'create', scope: scope === 'project' ? 'project' : 'user' })}
+          onClick={() =>
+            setMode({
+              kind: 'create',
+              scopes:
+                scope === 'project'
+                  ? (projectDir ? ['project'] : ['user'])
+                  : scope === 'user'
+                    ? ['user']
+                    : ['user'],
+            })
+          }
           title="新建 Agent"
         >
           <Plus size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
@@ -287,7 +313,7 @@ const AgentsTab: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <p className="section-title" style={{ margin: 0 }}>💡 範本庫</p>
             <span className="form-hint" style={{ marginTop: 0 }}>
-              點「套用」會在 {scope === 'project' ? '<project>/.claude/agents/' : '~/.claude/agents/'} 直接建立 .md 檔；同名時自動加後綴
+              每張卡片可獨立套用到 User（~/.claude/agents/）或 Project（&lt;project&gt;/.claude/agents/）；同名時自動加後綴
             </span>
           </div>
           <div className="resource-toolbar__filter">
@@ -308,8 +334,9 @@ const AgentsTab: React.FC = () => {
         </div>
         <div className="hook-templates__grid">
           {AGENT_TEMPLATES.filter((t) => templateFilter === 'all' || t.source === templateFilter).map((tpl) => {
-            const targetScope = resolveTemplateScope(tpl);
-            const blocked = targetScope === null;
+            const userKey = `${tpl.id}:user`;
+            const projectKey = `${tpl.id}:project`;
+            const projectDisabled = !projectDir;
             return (
               <div key={tpl.id} className="hook-template-card">
                 <div className="hook-template-card__header">
@@ -336,29 +363,35 @@ const AgentsTab: React.FC = () => {
 
                 <p className="hook-template-card__desc">{tpl.desc}</p>
 
-                {blocked && (
-                  <div className="hook-template-card__setup">
-                    ⚙️ 此範本建議寫入 Project 範圍，需先開啟專案目錄
-                  </div>
-                )}
-
                 {/* 預覽效果 */}
                 <div className="hook-template-card__preview">
                   <span className="hook-preview-label">效果</span>
                   <span className="hook-preview-text">{tpl.preview}</span>
                 </div>
 
-                <button
-                  className={`btn-primary hook-template-card__apply${
-                    appliedTemplateId === tpl.id ? ' hook-template-card__apply--applied' : ''
-                  }`}
-                  onClick={() => applyTemplate(tpl)}
-                  disabled={blocked}
-                >
-                  {appliedTemplateId === tpl.id
-                    ? '✓ 已建立'
-                    : `＋ 套用到 ${targetScope === 'project' ? 'Project' : 'User'}`}
-                </button>
+                {/* 並排兩個按鈕：User 永遠可用，Project 需已開啟專案 */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    className={`btn-primary hook-template-card__apply${
+                      appliedKey === userKey ? ' hook-template-card__apply--applied' : ''
+                    }`}
+                    style={{ flex: 1 }}
+                    onClick={() => applyTemplate(tpl, 'user')}
+                  >
+                    {appliedKey === userKey ? '✓ User' : '＋ User'}
+                  </button>
+                  <button
+                    className={`btn-primary hook-template-card__apply${
+                      appliedKey === projectKey ? ' hook-template-card__apply--applied' : ''
+                    }`}
+                    style={{ flex: 1 }}
+                    onClick={() => applyTemplate(tpl, 'project')}
+                    disabled={projectDisabled}
+                    title={projectDisabled ? '尚未開啟專案目錄' : undefined}
+                  >
+                    {appliedKey === projectKey ? '✓ Project' : '＋ Project'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -454,8 +487,55 @@ const AgentsTab: React.FC = () => {
 
         {mode.kind === 'create' && (
           <div className="resource-detail">
+            {/* Scope 複選：user / project 可同時建立；project 需已開啟專案 */}
+            <div
+              className="form-row"
+              style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}
+            >
+              <label className="form-label" style={{ margin: 0 }}>
+                建立範圍
+              </label>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <label
+                  className="radio-label"
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={mode.scopes.includes('user')}
+                    onChange={() => toggleCreateScope('user')}
+                  />
+                  User
+                  <span className="form-hint" style={{ marginTop: 0 }}>
+                    ~/.claude/agents/
+                  </span>
+                </label>
+                <label
+                  className="radio-label"
+                  style={{
+                    cursor: projectDir ? 'pointer' : 'not-allowed',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    opacity: projectDir ? 1 : 0.5,
+                  }}
+                  title={projectDir ? undefined : '尚未開啟專案目錄'}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={!projectDir}
+                    checked={mode.scopes.includes('project')}
+                    onChange={() => toggleCreateScope('project')}
+                  />
+                  Project
+                  <span className="form-hint" style={{ marginTop: 0 }}>
+                    &lt;project&gt;/.claude/agents/
+                  </span>
+                </label>
+              </div>
+            </div>
             <ResourceEditor
-              title={`新建 Agent(${mode.scope === 'user' ? 'User' : 'Project'} 範圍)`}
+              title={`新建 Agent（${mode.scopes.length === 2 ? 'User + Project' : mode.scopes[0] === 'user' ? 'User' : 'Project'} 範圍）`}
               fields={AGENT_FIELDS}
               initialData={{ name: '', description: '', tools: [], model: '' }}
               initialBody=""

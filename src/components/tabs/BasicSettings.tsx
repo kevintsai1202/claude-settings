@@ -90,11 +90,11 @@ const BasicSettings: React.FC = () => {
         />
       </div>
 
-      {/* Effort Level（max 為 Claude 4.7 起新增） */}
+      {/* Effort Level（xhigh 為 Opus 4.7 預設；max 為 Claude 4.7 起新增） */}
       <div className="form-row">
         <label className="form-label">Effort Level</label>
         <div className="radio-group">
-          {(['low', 'medium', 'high', 'max'] as EffortLevel[]).map((level) => (
+          {(['low', 'medium', 'high', 'xhigh', 'max'] as EffortLevel[]).map((level) => (
             <label key={level} className="radio-label">
               <input
                 type="radio"

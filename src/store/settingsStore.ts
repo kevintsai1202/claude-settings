@@ -16,6 +16,8 @@ import type {
   CommandFile,
   OutputStyleFile,
   SkillFile,
+  RuleFile,
+  MemoryFile,
   ClaudeMdEntry,
 } from '../types/settings';
 import {
@@ -103,6 +105,8 @@ interface AppActions {
   setCommands: (commands: CommandFile[]) => void;
   setOutputStyles: (outputStyles: OutputStyleFile[]) => void;
   setSkills: (skills: SkillFile[]) => void;
+  setRules: (rules: RuleFile[]) => void;
+  setMemory: (memoryFiles: MemoryFile[], memoryDir: string | null) => void;
 
   /** 重設整個 store（開啟新專案時使用） */
   reset: () => void;
@@ -144,6 +148,9 @@ const initialState: AppState = {
   commands: [],
   outputStyles: [],
   skills: [],
+  rules: [],
+  memoryFiles: [],
+  memoryDir: null,
 };
 
 // ─── Zustand Store ──────────────────────────────────────────
@@ -344,6 +351,8 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
   setCommands: (commands) => set({ commands }),
   setOutputStyles: (outputStyles) => set({ outputStyles }),
   setSkills: (skills) => set({ skills }),
+  setRules: (rules) => set({ rules }),
+  setMemory: (memoryFiles, memoryDir) => set({ memoryFiles, memoryDir }),
 
   reset: () => set(initialState),
 }));

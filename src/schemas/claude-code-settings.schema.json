@@ -9,8 +9,8 @@
     },
     "effortLevel": {
       "type": "string",
-      "enum": ["low", "medium", "high", "max"],
-      "description": "推理努力等級（max 為 Claude 4.7 起新增的最高等級）"
+      "enum": ["low", "medium", "high", "xhigh", "max"],
+      "description": "推理努力等級（xhigh 為 Opus 4.7 預設；max 為 Claude 4.7 起新增的最高等級）"
     },
     "availableModels": {
       "type": "array",
@@ -150,6 +150,10 @@
       "maximum": 365,
       "description": "記錄清理週期（天）"
     },
+    "autoMemoryEnabled": {
+      "type": "boolean",
+      "description": "啟用自動記憶功能（預設 true，需 Claude Code v2.1.59+）"
+    },
     "autoMemoryDirectory": {
       "type": "string",
       "description": "自動記憶檔案目錄"
@@ -157,6 +161,11 @@
     "plansDirectory": {
       "type": "string",
       "description": "Plan 檔案目錄"
+    },
+    "claudeMdExcludes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "要排除的 CLAUDE.md 或 .claude/rules/ glob 路徑；各層陣列合并；Managed 層不可排除"
     },
     "enableAllProjectMcpServers": {
       "type": "boolean"
