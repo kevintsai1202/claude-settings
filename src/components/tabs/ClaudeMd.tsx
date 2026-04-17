@@ -10,6 +10,7 @@ import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
 import { parseClaudeMdImports, type ImportRef } from '../../utils/parseClaudeMdImports';
+import { estimateStats, tokenWarningLevel } from '../../utils/estimateTokens';
 import './TabContent.css';
 
 type Scope = 'global' | 'project';
@@ -42,6 +43,10 @@ const ClaudeMd: React.FC = () => {
     () => parseClaudeMdImports(content, baseDir),
     [content, baseDir],
   );
+
+  /** 字數/行數/詞數/token 估算 */
+  const stats = useMemo(() => estimateStats(content), [content]);
+  const warningLevel = tokenWarningLevel(stats.estimatedTokens);
 
   /** scope 切換時清除預覽狀態 */
   useEffect(() => {
@@ -109,6 +114,20 @@ const ClaudeMd: React.FC = () => {
         ))}
       </div>
 
+      {/* 統計列 — 字數/行數/詞數/估算 tokens */}
+      <div className={`md-stats md-stats--${warningLevel}`}>
+        <span>📏 字數：{stats.chars.toLocaleString()}</span>
+        <span>📑 行數：{stats.lines}</span>
+        <span>🔤 詞數：{stats.words}</span>
+        <span>🧠 估算 tokens：<strong>{stats.estimatedTokens.toLocaleString()}</strong></span>
+        {warningLevel === 'warn' && (
+          <span className="md-stats__hint">⚠ 檔案偏大,建議用 @path 拆分細節到獨立檔案</span>
+        )}
+        {warningLevel === 'critical' && (
+          <span className="md-stats__hint">🚨 檔案過大(&gt;5000 tokens),強烈建議拆分 — 過大的 CLAUDE.md 會壓縮模型可用上下文</span>
+        )}
+      </div>
+
       {/* 左右兩欄：編輯區 + 引用預覽面板 */}
       <div className="md-editor-layout">
         {/* 左側：Markdown 編輯區 */}
@@ -166,9 +185,9 @@ const ClaudeMd: React.FC = () => {
         </aside>
       </div>
 
-      {/* 底部狀態列 */}
+      {/* 底部操作列 — 字數/行數統計已移至頂部 .md-stats */}
       <div className="md-footer">
-        <span>字數：{content.length} ／ 行數：{content.split('\n').length}</span>
+        <span />
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn-secondary" onClick={handleCopy}>📋 複製</button>
           <button className="btn-primary"   onClick={handleSave}>💾 儲存</button>

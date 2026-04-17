@@ -792,3 +792,36 @@
   color: var(--color-danger);
   font-size: 0.85rem;
 }
+
+/* ── CLAUDE.md 統計列 ─────────────────────────────────── */
+
+.md-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.md-stats--warn {
+  border-color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.md-stats--critical {
+  border-color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.md-stats__hint {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.md-stats--warn .md-stats__hint {
+  color: var(--color-warning);
+}
