@@ -1,7 +1,8 @@
 /**
  * Claude Code Hook 範本庫
  * 每個範本可透過 UI 一鍵套用，自動新增為對應事件下的 HookEntry
- * 以 Windows 環境為主（使用 py / powershell），跨平台項目會在 desc 標註
+ * 範本內使用 {{PYTHON}} 佔位符：套用到 settings.json 時依當前平台替換為 py（Windows）或 python3（macOS/Linux）
+ * PowerShell 範本標為 platform: 'windows'，於非 Windows 平台會自動過濾
  */
 import type { HookEvent } from '../../types/settings';
 
@@ -38,7 +39,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '攔截 rm -rf / format c: / sudo rm 等毀滅性命令',
-    command: `py -c "import json,sys; d=json.load(sys.stdin); cmd=d.get('tool_input',{}).get('command','').lower(); danger=['rm -rf /','rm -rf ~','sudo rm','format c:','del /f /s /q c:','chmod -R 000','mkfs']; hit=[p for p in danger if p in cmd]; print(f'Hook 阻擋：偵測到危險命令 \\"{hit[0]}\\"',file=sys.stderr) if hit else None; sys.exit(2 if hit else 0)"`,
+    command: `{{PYTHON}} -c "import json,sys; d=json.load(sys.stdin); cmd=d.get('tool_input',{}).get('command','').lower(); danger=['rm -rf /','rm -rf ~','sudo rm','format c:','del /f /s /q c:','chmod -R 000','mkfs']; hit=[p for p in danger if p in cmd]; print(f'Hook 阻擋：偵測到危險命令 \\"{hit[0]}\\"',file=sys.stderr) if hit else None; sys.exit(2 if hit else 0)"`,
     timeout: 5000,
   },
   {
@@ -51,7 +52,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '阻擋 .env / secrets / *.pem / *.key 的編輯',
-    command: `py -c "import json,sys; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path','').lower(); protected=['.env','secrets.json','credentials','.pem','.key','id_rsa']; hit=[p for p in protected if p in fp]; print(f'Hook 阻擋：{fp} 為敏感檔案，禁止編輯',file=sys.stderr) if hit else None; sys.exit(2 if hit else 0)"`,
+    command: `{{PYTHON}} -c "import json,sys; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path','').lower(); protected=['.env','secrets.json','credentials','.pem','.key','id_rsa']; hit=[p for p in protected if p in fp]; print(f'Hook 阻擋：{fp} 為敏感檔案，禁止編輯',file=sys.stderr) if hit else None; sys.exit(2 if hit else 0)"`,
     timeout: 5000,
   },
 
@@ -66,7 +67,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '每次寫入後自動跑 npx prettier --write <file>',
-    command: `py -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); exts=('.ts','.tsx','.js','.jsx','.json','.md','.css','.scss'); fp.endswith(exts) and subprocess.run(['npx','prettier','--write',fp],shell=True,capture_output=True)"`,
+    command: `{{PYTHON}} -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); exts=('.ts','.tsx','.js','.jsx','.json','.md','.css','.scss'); fp.endswith(exts) and subprocess.run(['npx','prettier','--write',fp],shell=True,capture_output=True)"`,
     timeout: 30000,
   },
   {
@@ -79,7 +80,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: 'Python 檔寫入後執行 ruff format <file>',
-    command: `py -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); fp.endswith('.py') and subprocess.run(['ruff','format',fp],shell=True,capture_output=True)"`,
+    command: `{{PYTHON}} -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); fp.endswith('.py') and subprocess.run(['ruff','format',fp],shell=True,capture_output=True)"`,
     timeout: 15000,
   },
   {
@@ -92,7 +93,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '→ .claude/bash-log.txt：[2026-04-16 14:23:05] git status',
-    command: `py -c "import json,sys,os,datetime; d=json.load(sys.stdin); cmd=d.get('tool_input',{}).get('command',''); os.makedirs('.claude',exist_ok=True); open('.claude/bash-log.txt','a',encoding='utf-8').write(f'[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {cmd}\\n')"`,
+    command: `{{PYTHON}} -c "import json,sys,os,datetime; d=json.load(sys.stdin); cmd=d.get('tool_input',{}).get('command',''); os.makedirs('.claude',exist_ok=True); open('.claude/bash-log.txt','a',encoding='utf-8').write(f'[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {cmd}\\n')"`,
     timeout: 5000,
   },
 
@@ -106,7 +107,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '附加到 context：[Git Branch: main]',
-    command: `py -c "import subprocess,json; b=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True,shell=True).stdout.strip(); b and print(json.dumps({'hookSpecificOutput':{'hookEventName':'UserPromptSubmit','additionalContext':f'[Git Branch: {b}]'}}))"`,
+    command: `{{PYTHON}} -c "import subprocess,json; b=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True,shell=True).stdout.strip(); b and print(json.dumps({'hookSpecificOutput':{'hookEventName':'UserPromptSubmit','additionalContext':f'[Git Branch: {b}]'}}))"`,
     timeout: 5000,
   },
 
@@ -120,7 +121,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'official',
     preview: '附加到 context：[Working Tree] M src/... / [未推送] 2 commits',
-    command: `py -c "import subprocess,json; s=subprocess.run(['git','status','--short'],capture_output=True,text=True,shell=True).stdout.strip() or '(clean)'; u=subprocess.run(['git','log','@{u}..HEAD','--oneline'],capture_output=True,text=True,shell=True).stdout.strip() or '(none)'; print(json.dumps({'hookSpecificOutput':{'hookEventName':'SessionStart','additionalContext':f'[Working Tree]\\n{s}\\n[未推送]\\n{u}'}}))"`,
+    command: `{{PYTHON}} -c "import subprocess,json; s=subprocess.run(['git','status','--short'],capture_output=True,text=True,shell=True).stdout.strip() or '(clean)'; u=subprocess.run(['git','log','@{u}..HEAD','--oneline'],capture_output=True,text=True,shell=True).stdout.strip() or '(none)'; print(json.dumps({'hookSpecificOutput':{'hookEventName':'SessionStart','additionalContext':f'[Working Tree]\\n{s}\\n[未推送]\\n{u}'}}))"`,
     timeout: 10000,
   },
 
@@ -165,7 +166,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'community',
     preview: '所有 Read/Glob/Grep 操作自動通過，不再跳確認',
-    command: `py -c "import json; print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'allow','permissionDecisionReason':'Safe read-only operation'}}))"`,
+    command: `{{PYTHON}} -c "import json; print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'allow','permissionDecisionReason':'Safe read-only operation'}}))"`,
     timeout: 3000,
   },
 
@@ -180,7 +181,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     needsNetwork: true,
     needsSetup: '需替換命令中的 YOUR_WEBHOOK_URL（Discord 頻道設定 → 整合 → Webhooks）',
     preview: '→ Discord：「Claude completed at 14:30」',
-    command: `py -c "import urllib.request,json,datetime; url='https://discord.com/api/webhooks/YOUR_WEBHOOK_URL'; msg={'content':f'🤖 Claude completed at {datetime.datetime.now():%H:%M:%S}'}; urllib.request.urlopen(urllib.request.Request(url,data=json.dumps(msg).encode(),headers={'Content-Type':'application/json'}),timeout=3)"`,
+    command: `{{PYTHON}} -c "import urllib.request,json,datetime; url='https://discord.com/api/webhooks/YOUR_WEBHOOK_URL'; msg={'content':f'🤖 Claude completed at {datetime.datetime.now():%H:%M:%S}'}; urllib.request.urlopen(urllib.request.Request(url,data=json.dumps(msg).encode(),headers={'Content-Type':'application/json'}),timeout=3)"`,
     timeout: 8000,
   },
 
@@ -194,7 +195,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'community',
     preview: '→ .claude/mcp-audit.log：[14:30] mcp__slack__send_message',
-    command: `py -c "import json,sys,os,datetime; d=json.load(sys.stdin); tool=d.get('tool_name',''); os.makedirs('.claude',exist_ok=True); open('.claude/mcp-audit.log','a',encoding='utf-8').write(f'[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {tool}\\n')"`,
+    command: `{{PYTHON}} -c "import json,sys,os,datetime; d=json.load(sys.stdin); tool=d.get('tool_name',''); os.makedirs('.claude',exist_ok=True); open('.claude/mcp-audit.log','a',encoding='utf-8').write(f'[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] {tool}\\n')"`,
     timeout: 3000,
   },
 
@@ -208,7 +209,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'community',
     preview: '編輯 foo.test.ts 後自動跑 npx vitest run foo.test.ts',
-    command: `py -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); any(p in fp for p in ['.test.','.spec.']) and subprocess.Popen(['npx','vitest','run',fp],shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)"`,
+    command: `{{PYTHON}} -c "import json,sys,subprocess; d=json.load(sys.stdin); fp=d.get('tool_input',{}).get('file_path',''); any(p in fp for p in ['.test.','.spec.']) and subprocess.Popen(['npx','vitest','run',fp],shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)"`,
     timeout: 5000,
   },
 
@@ -222,7 +223,7 @@ export const HOOK_TEMPLATES: HookTemplate[] = [
     platform: 'cross',
     source: 'community',
     preview: '阻擋所有 WebFetch / WebSearch',
-    command: `py -c "import sys; print('離線模式已啟用，本專案禁用 WebFetch/WebSearch',file=sys.stderr); sys.exit(2)"`,
+    command: `{{PYTHON}} -c "import sys; print('離線模式已啟用，本專案禁用 WebFetch/WebSearch',file=sys.stderr); sys.exit(2)"`,
     timeout: 3000,
   },
 ];

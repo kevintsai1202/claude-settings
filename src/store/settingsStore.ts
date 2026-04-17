@@ -18,6 +18,12 @@ import type {
   SkillFile,
   ClaudeMdEntry,
 } from '../types/settings';
+import {
+  DEFAULT_USER_PATH,
+  DEFAULT_GLOBAL_PATH,
+  DEFAULT_USER_CLAUDE_MD,
+  getDefaultManagedPath,
+} from '../utils/defaultPaths';
 
 // 建立空白的設定檔物件
 const emptyFile = (layer: SettingsLayer, path: string): SettingsFile => ({
@@ -29,10 +35,6 @@ const emptyFile = (layer: SettingsLayer, path: string): SettingsFile => ({
   dirty: false,
   previousData: undefined,
 });
-
-// 各層設定檔的預設路徑（Windows，使用者目錄）
-const DEFAULT_USER_PATH = '%USERPROFILE%\\.claude\\settings.json';
-const DEFAULT_MANAGED_PATH = 'C:\\Program Files\\ClaudeCode\\managed-settings.json';
 
 // ─── Store Actions 型別 ────────────────────────────────────
 interface AppActions {
@@ -121,10 +123,10 @@ const initialState: AppState = {
     user:    emptyFile('user',    DEFAULT_USER_PATH),
     project: emptyFile('project', ''),
     local:   emptyFile('local',   ''),
-    managed: emptyFile('managed', DEFAULT_MANAGED_PATH),
+    managed: emptyFile('managed', getDefaultManagedPath()),
   },
   globalFile: {
-    path: '%USERPROFILE%/.claude.json',
+    path: DEFAULT_GLOBAL_PATH,
     status: 'missing',
     data: null,
     raw: '',
@@ -134,7 +136,7 @@ const initialState: AppState = {
   projectDir: null,
   activeTab: 'basic',
   claudeMd: {
-    global:  emptyClaudeMd('%USERPROFILE%\\.claude\\CLAUDE.md'),
+    global:  emptyClaudeMd(DEFAULT_USER_CLAUDE_MD),
     project: emptyClaudeMd(''),
   },
   isDirty: false,  // 向下相容；實際檢查看各 file.dirty
@@ -156,10 +158,10 @@ export const useAppStore = create<AppState & AppActions>((set) => ({
       files: {
         ...state.files,
         project: {
-          ...emptyFile('project', dir ? `${dir}\\.claude\\settings.json` : ''),
+          ...emptyFile('project', dir ? `${dir}/.claude/settings.json` : ''),
         },
         local: {
-          ...emptyFile('local', dir ? `${dir}\\.claude\\settings.local.json` : ''),
+          ...emptyFile('local', dir ? `${dir}/.claude/settings.local.json` : ''),
         },
       },
     })),

@@ -11,8 +11,19 @@ import TagArrayInput from '../ui/TagArrayInput';
 import ComboBox from '../ui/ComboBox';
 import { HOOK_TEMPLATES, type HookTemplate } from './hookTemplates';
 import type { HookEvent, HookEntry, HookType, HooksConfig, ClaudeSettings } from '../../types/settings';
+import { materializeCommand } from '../../utils/commandMaterializer';
+import { getPlatform, getPlatformLabel } from '../../utils/platform';
 import './TabContent.css';
 import './ResourceTab.css';  // 借用 .resource-chip 樣式做來源過濾
+
+/** 判斷某範本是否適用於當前平台（用於 UI 警告，但不阻止套用） */
+const isTemplateCompatible = (tpl: HookTemplate): boolean => {
+  const cur = getPlatform();
+  if (tpl.platform === 'cross') return true;
+  if (tpl.platform === 'windows') return cur === 'windows';
+  if (tpl.platform === 'unix') return cur === 'macos' || cur === 'linux';
+  return true;
+};
 
 const HOOK_EVENTS: { event: HookEvent; label: string; desc: string }[] = [
   { event: 'PreToolUse',       label: 'PreToolUse',       desc: '工具執行前觸發' },
@@ -200,11 +211,20 @@ const Hooks: React.FC = () => {
    * @param tpl 要套用的範本
    */
   const applyTemplate = async (tpl: HookTemplate) => {
+    // 若範本明確標示為其他平台，提示一次讓使用者確認（仍允許寫入，因為可能要給另一台機器使用）
+    if (!isTemplateCompatible(tpl)) {
+      const ok = window.confirm(
+        `此範本標示為「${tpl.platform}」，當前為 ${getPlatformLabel()}。\n\n` +
+          `套用後在此機器可能無法直接執行。仍要寫入嗎？（常見情境：為另一台機器準備設定）`,
+      );
+      if (!ok) return;
+    }
     const entry: HookEntry = {
       id: crypto.randomUUID(),
       matcher: tpl.matcher,
       type: 'command',
-      command: tpl.command,
+      // 套用時替換 {{PYTHON}} 等佔位符為當前平台實際命令
+      command: materializeCommand(tpl.command),
       timeout: tpl.timeout ?? 60000,
     };
     const existing = hooks[tpl.event] ?? [];
@@ -311,8 +331,16 @@ const Hooks: React.FC = () => {
                   {tpl.source === 'official' ? '🏢 官方' : '🌐 社群'}
                 </span>
                 {tpl.matcher && <span className="hook-tag hook-tag--matcher">{tpl.matcher}</span>}
-                <span className={`hook-tag hook-tag--platform hook-tag--platform-${tpl.platform}`}>
+                <span
+                  className={`hook-tag hook-tag--platform hook-tag--platform-${tpl.platform}`}
+                  title={
+                    isTemplateCompatible(tpl)
+                      ? undefined
+                      : `⚠ 當前為 ${getPlatformLabel()}，此範本可能無法直接執行`
+                  }
+                >
                   {tpl.platform === 'cross' ? 'Cross-platform' : tpl.platform === 'windows' ? 'Windows' : 'Unix'}
+                  {!isTemplateCompatible(tpl) && ' ⚠'}
                 </span>
                 {tpl.needsNetwork && <span className="hook-tag hook-tag--network">📡 需網路</span>}
               </div>

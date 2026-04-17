@@ -18,7 +18,13 @@
         { "path": "$HOME/**" },
         { "path": "C:/**" },
         { "path": "D:/**" },
-        { "path": "E:/**" }
+        { "path": "E:/**" },
+        { "path": "/Users/**" },
+        { "path": "/Applications/**" },
+        { "path": "/Library/**" },
+        { "path": "/etc/**" },
+        { "path": "/opt/**" },
+        { "path": "/usr/local/**" }
       ]
     },
     "dialog:default",

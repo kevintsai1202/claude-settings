@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../store/settingsStore';
 import { useFileManager } from '../../hooks/useFileManager';
 import type { ClaudeSettings, StatusLineSettings } from '../../types/settings';
+import { getPlatform, getPlatformLabel } from '../../utils/platform';
+import { materializeCommand } from '../../utils/commandMaterializer';
 import './TabContent.css';
 import './ResourceTab.css';  // 借用 .resource-chip 樣式做來源/語言過濾
 
@@ -47,6 +49,31 @@ const LANG_META: Record<Lang, { label: string; emoji: string }> = {
   shell:      { label: 'Shell',      emoji: '🐚' },
 };
 
+/**
+ * 依當前作業系統推薦的初始語言過濾
+ * - Windows → powershell（pwsh 在此平台原生且不需額外依賴）
+ * - macOS / Linux → shell（bash/zsh 內建，最輕量）
+ * - 其他（unknown）→ all（保守展示全部）
+ */
+const getInitialLangFilter = (): LangFilter => {
+  switch (getPlatform()) {
+    case 'windows': return 'powershell';
+    case 'macos':
+    case 'linux':   return 'shell';
+    default:        return 'all';
+  }
+};
+
+/** 當前平台不適用（會無法執行）的語言 — 用於範本卡的語言按鈕禁用 */
+const UNAVAILABLE_LANGS: Record<Lang, boolean> = (() => {
+  const p = getPlatform();
+  return {
+    python:     false,  // python/python3 跨平台可用
+    powershell: p !== 'windows',  // macOS/Linux 預設沒有 pwsh
+    shell:      p === 'windows',  // Windows 預設沒有 bash/zsh（除非裝 WSL 或 Git Bash）
+  };
+})();
+
 // ─── stdin JSON 說明（文件用） ─────────────────────────────
 /** Command 模式下 stdin 接收到的 JSON 結構範例 */
 const STDIN_DOC = `{
@@ -72,7 +99,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'official',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); print(f'[{m}] {p}% ctx')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); print(f'[{m}] {p}% ctx')\"",
         padding: 1,
       },
       powershell: {
@@ -90,7 +117,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'official',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; c=d.get('cost',{}).get('total_cost_usd') or 0; print(f'[{m}] ${c:.4f}')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; c=d.get('cost',{}).get('total_cost_usd') or 0; print(f'[{m}] ${c:.4f}')\"",
         padding: 1,
       },
       powershell: {
@@ -108,7 +135,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'official',
     variants: {
       python: {
-        command: "py -c \"import json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); c=d.get('cost',{}).get('total_cost_usd') or 0; wd=os.path.basename(d.get('workspace',{}).get('current_dir','?')); print(f'[{m}] {wd} | {p}% | ${c:.4f}')\"",
+        command: "{{PYTHON}} -c \"import json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); c=d.get('cost',{}).get('total_cost_usd') or 0; wd=os.path.basename(d.get('workspace',{}).get('current_dir','?')); print(f'[{m}] {wd} | {p}% | ${c:.4f}')\"",
         padding: 1,
       },
       powershell: {
@@ -126,7 +153,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'official',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); p=round(d.get('context_window',{}).get('used_percentage',0)); f=int(p/10); b=chr(9608)*f+chr(9617)*(10-f); m=d['model']['display_name']; print(f'[{m}] {b} {p}%')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); p=round(d.get('context_window',{}).get('used_percentage',0)); f=int(p/10); b=chr(9608)*f+chr(9617)*(10-f); m=d['model']['display_name']; print(f'[{m}] {b} {p}%')\"",
         padding: 1,
       },
       powershell: {
@@ -162,7 +189,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'official',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); rl=d.get('rate_limits',{}).get('five_hour',{}); p=round(rl.get('used_percentage',0) if rl else 0); m=d['model']['display_name']; print(f'[{m}] RL: {p}%')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); rl=d.get('rate_limits',{}).get('five_hour',{}); p=round(rl.get('used_percentage',0) if rl else 0); m=d['model']['display_name']; print(f'[{m}] RL: {p}%')\"",
         padding: 1,
       },
       powershell: {
@@ -181,7 +208,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'community',
     variants: {
       python: {
-        command: "py -c \"import json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); c=d.get('cost',{}).get('total_cost_usd') or 0; wd=os.path.basename(d.get('workspace',{}).get('current_dir','?')); print(f'🤖 {m} | 🧠 {p}% | 💰 ${c:.4f} | 📁 {wd}')\"",
+        command: "{{PYTHON}} -c \"import json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; p=round(d.get('context_window',{}).get('used_percentage',0)); c=d.get('cost',{}).get('total_cost_usd') or 0; wd=os.path.basename(d.get('workspace',{}).get('current_dir','?')); print(f'🤖 {m} | 🧠 {p}% | 💰 ${c:.4f} | 📁 {wd}')\"",
         padding: 1,
       },
       powershell: {
@@ -199,7 +226,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'community',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); p=round(d.get('context_window',{}).get('used_percentage',0)); c='\\033[32m' if p<50 else '\\033[33m' if p<80 else '\\033[31m'; r='\\033[0m'; m=d['model']['display_name']; print(f'[{m}] {c}ctx {p}%{r}')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); p=round(d.get('context_window',{}).get('used_percentage',0)); c='\\033[32m' if p<50 else '\\033[33m' if p<80 else '\\033[31m'; r='\\033[0m'; m=d['model']['display_name']; print(f'[{m}] {c}ctx {p}%{r}')\"",
         padding: 1,
       },
       powershell: {
@@ -217,7 +244,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'community',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); rl=d.get('rate_limits',{}).get('five_hour',{}); p=round(rl.get('used_percentage',0) if rl else 0); f=int(p/5); b=chr(9608)*f+chr(9617)*(20-f); m=d['model']['display_name']; print(f'[{m}] ⏳ {b} {p}%')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); rl=d.get('rate_limits',{}).get('five_hour',{}); p=round(rl.get('used_percentage',0) if rl else 0); f=int(p/5); b=chr(9608)*f+chr(9617)*(20-f); m=d['model']['display_name']; print(f'[{m}] ⏳ {b} {p}%')\"",
         padding: 1,
       },
       powershell: {
@@ -235,7 +262,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'community',
     variants: {
       python: {
-        command: "py -c \"import subprocess,json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; wt=d.get('workspace',{}).get('git_worktree') or os.path.basename(d.get('workspace',{}).get('current_dir','?')); b=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True,shell=True).stdout.strip() or '—'; s=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True,shell=True).stdout.strip(); dirty='*' if s else ''; print(f'[{m}] 🌳 {wt} | 🌿 {b}{dirty}')\"",
+        command: "{{PYTHON}} -c \"import subprocess,json,sys,os; d=json.load(sys.stdin); m=d['model']['display_name']; wt=d.get('workspace',{}).get('git_worktree') or os.path.basename(d.get('workspace',{}).get('current_dir','?')); b=subprocess.run(['git','branch','--show-current'],capture_output=True,text=True,shell=True).stdout.strip() or '—'; s=subprocess.run(['git','status','--porcelain'],capture_output=True,text=True,shell=True).stdout.strip(); dirty='*' if s else ''; print(f'[{m}] 🌳 {wt} | 🌿 {b}{dirty}')\"",
         padding: 1,
       },
       powershell: {
@@ -253,7 +280,7 @@ const TEMPLATES: StatusLineTemplate[] = [
     source: 'community',
     variants: {
       python: {
-        command: "py -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; ms=d.get('cost',{}).get('total_duration_ms',0); s=ms//1000; print(f'[{m}] ⏱️ {s//60:02d}:{s%60:02d}')\"",
+        command: "{{PYTHON}} -c \"import json,sys; d=json.load(sys.stdin); m=d['model']['display_name']; ms=d.get('cost',{}).get('total_duration_ms',0); s=ms//1000; print(f'[{m}] ⏱️ {s//60:02d}:{s%60:02d}')\"",
         padding: 1,
       },
       powershell: {
@@ -288,8 +315,8 @@ const StatusLineTab: React.FC = () => {
   const [appliedKey, setAppliedKey] = useState<string | null>(null);
   /** 範本來源過濾：all / official / community */
   const [sourceFilter, setSourceFilter] = useState<'all' | TemplateSource>('all');
-  /** 語言過濾：all / python / powershell / shell */
-  const [langFilter, setLangFilter] = useState<LangFilter>('all');
+  /** 語言過濾：預設依當前作業系統挑選最合適者（可手動切到 'all' 看全部） */
+  const [langFilter, setLangFilter] = useState<LangFilter>(() => getInitialLangFilter());
 
   const userSettings: ClaudeSettings = files.user.data ?? {};
   const statusLine: StatusLineSettings = userSettings.statusLine ?? { type: 'command' };
@@ -322,7 +349,12 @@ const StatusLineTab: React.FC = () => {
       );
       if (!ok) return;
     }
-    const next: StatusLineSettings = { type: 'command', ...variant };
+    // 替換佔位符（{{PYTHON}} → py / python3 依平台）；非 Python 範本不含佔位符則原樣保留
+    const next: StatusLineSettings = {
+      type: 'command',
+      ...variant,
+      command: materializeCommand(variant.command),
+    };
     await saveFile('user', files.user.path, { ...userSettings, statusLine: next });
     const key = `${tpl.id}:${lang}`;
     setAppliedKey(key);
@@ -442,23 +474,36 @@ const StatusLineTab: React.FC = () => {
               </button>
             ))}
           </div>
-          {/* 語言過濾 */}
+          {/* 語言過濾（依當前平台自動設預設，不適用語言標灰） */}
           <div className="resource-toolbar__filter">
-            {(['all', 'python', 'powershell', 'shell'] as const).map((l) => (
-              <button
-                key={l}
-                className={`resource-chip${langFilter === l ? ' resource-chip--active' : ''}`}
-                onClick={() => setLangFilter(l)}
-                title={l === 'all' ? '不限語言' : `僅顯示有 ${LANG_META[l].label} 版本的範本`}
-              >
-                {l === 'all' ? '全部語言' : `${LANG_META[l].emoji} ${LANG_META[l].label}`}
-              </button>
-            ))}
+            {(['all', 'python', 'powershell', 'shell'] as const).map((l) => {
+              const unavailable = l !== 'all' && UNAVAILABLE_LANGS[l];
+              return (
+                <button
+                  key={l}
+                  className={`resource-chip${langFilter === l ? ' resource-chip--active' : ''}`}
+                  onClick={() => setLangFilter(l)}
+                  title={
+                    l === 'all'
+                      ? '不限語言'
+                      : unavailable
+                        ? `⚠ 目前為 ${getPlatformLabel()}，${LANG_META[l].label} 通常無法直接執行`
+                        : `僅顯示有 ${LANG_META[l].label} 版本的範本`
+                  }
+                  style={unavailable ? { opacity: 0.55 } : undefined}
+                >
+                  {l === 'all' ? '全部語言' : `${LANG_META[l].emoji} ${LANG_META[l].label}`}
+                  {unavailable && ' ⚠'}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
       <p className="tab-desc" style={{ marginBottom: 16, fontSize: 12 }}>
-        點擊語言按鈕即可將該語言版本寫入 User 設定。PowerShell 範本適合 Windows 環境；Python 範本跨平台；Shell 範本最輕量（僅 POSIX 相容系統）。
+        點擊語言按鈕即可將該語言版本寫入 User 設定。當前平台：<strong>{getPlatformLabel()}</strong>
+        ，已自動過濾最適用之語言（可點「全部語言」解除）。
+        PowerShell 僅 Windows；Python 跨平台；Shell 僅 POSIX。
       </p>
 
       <div className="statusline-templates-grid">
@@ -495,11 +540,12 @@ const StatusLineTab: React.FC = () => {
                 <code className="statusline-preview-text">{tpl.preview}</code>
               </div>
 
-              {/* 套用按鈕：每個可用語言一個按鈕 */}
+              {/* 套用按鈕：每個可用語言一個按鈕（當前平台不適用者標示 ⚠） */}
               <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
                 {availableLangs.map((lang) => {
                   const key = `${tpl.id}:${lang}`;
                   const isApplied = appliedKey === key;
+                  const unavailable = UNAVAILABLE_LANGS[lang];
                   return (
                     <button
                       key={lang}
@@ -511,12 +557,19 @@ const StatusLineTab: React.FC = () => {
                         padding: '5px 8px',
                         background: isApplied ? 'var(--color-success)' : undefined,
                         color: isApplied ? '#fff' : undefined,
+                        opacity: unavailable ? 0.6 : undefined,
                         transition: 'background 0.3s',
                       }}
                       onClick={() => applyTemplate(tpl, lang)}
-                      title={`套用 ${LANG_META[lang].label} 版本`}
+                      title={
+                        unavailable
+                          ? `⚠ 當前為 ${getPlatformLabel()}，${LANG_META[lang].label} 通常無法直接執行；仍可寫入 User 設定供其他機器使用`
+                          : `套用 ${LANG_META[lang].label} 版本`
+                      }
                     >
-                      {isApplied ? `✓ 已套用` : `${LANG_META[lang].emoji} ${LANG_META[lang].label}`}
+                      {isApplied
+                        ? `✓ 已套用`
+                        : `${LANG_META[lang].emoji} ${LANG_META[lang].label}${unavailable ? ' ⚠' : ''}`}
                     </button>
                   );
                 })}

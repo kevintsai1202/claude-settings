@@ -4,14 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 開發指令
 
-```powershell
+```bash
+# 跨平台 npm 指令（Windows PowerShell / macOS zsh / Linux bash 皆可）
 npm run tauri dev      # 啟動完整 Tauri 視窗（Rust + React，日常開發用）
 npm run dev            # 僅啟動前端 Vite Dev Server（port 1420）
 npm run build          # TypeScript 編譯 + Vite 打包
-npm run tauri build    # 打包成 Windows .exe 安裝程式
+npm run tauri build    # 打包安裝程式（Windows → .msi/.exe；macOS → .dmg）
 ```
 
 沒有測試指令（專案目前未配置測試框架）。
+
+### 平台需求
+
+- **Windows**：Python Launcher (`py`)、WebView2 Runtime
+- **macOS**：Xcode Command Line Tools (`xcode-select --install`)、Python 3 (`python3`)
+- **Linux**：webkit2gtk、libssl-dev、build-essential、Python 3
 
 ## 架構概覽
 
@@ -25,10 +32,13 @@ npm run tauri build    # 打包成 Windows .exe 安裝程式
 managed (1) > local (2) > project (3) > user (4)
 ```
 
-- `managed` — `C:\Program Files\ClaudeCode\managed-settings.json`（唯讀企業管控）
-- `local` — `<project>\.claude\settings.local.json`（個人本地覆蓋）
-- `project` — `<project>\.claude\settings.json`（專案共用）
-- `user` — `%USERPROFILE%\.claude\settings.json`（全局個人）
+- `managed` — 唯讀企業管控（依平台）
+  - Windows: `C:\Program Files\ClaudeCode\managed-settings.json`
+  - macOS:   `/Library/Application Support/ClaudeCode/managed-settings.json`
+  - Linux:   `/etc/claude-code/managed-settings.json`
+- `local` — `<project>/.claude/settings.local.json`（個人本地覆蓋）
+- `project` — `<project>/.claude/settings.json`（專案共用）
+- `user` — `%USERPROFILE%/.claude/settings.json`（佔位符；macOS/Linux 由 `resolvePath()` 展開成 `$HOME/.claude/settings.json`）
 
 合并規則在 `src/utils/merge.ts`：純量欄位高優先覆蓋低優先；陣列欄位（`permissions.allow/deny/ask`）各層合并去重；`env` 物件高優先同 key 覆蓋。
 
@@ -71,12 +81,24 @@ Tauri FS (readTextFile/writeTextFile)
 
 使用 `useManagedField('fieldName')` 取得 `isManaged` 布林值，鎖定時在欄位旁顯示 `<ManagedBadge />` 並停用輸入。`fieldName` 支援點號路徑（如 `'permissions.defaultMode'`）。
 
-### Windows 路徑處理
+### 跨平台路徑處理
 
-- 永遠使用 `%USERPROFILE%` 而非 `~`（Tauri FS 不展開 `~`）
-- `useFileManager` 中的 `resolvePath()` 負責轉換，Tab 元件不需自己處理路徑
+- **寫路徑常數時永遠用正斜線**（Tauri FS 在 Windows 也接受正斜線）
+- User 層統一用 `%USERPROFILE%` 佔位符（由 `resolvePath()` 依平台展開為 `homeDir()`），**不要**在程式碼中硬寫 `\\` 反斜線
+- Managed 層是唯一真的 per-OS 分支的路徑，集中在 `src/utils/defaultPaths.ts` 的 `getDefaultManagedPath()`
 - Vite dev server 固定在 port 1420，不可更改（`tauri.conf.json` 硬編碼）
 
-### Python hooks（hookify 插件）
+### 平台偵測
 
-Windows 系統上 `python3` 指向 Microsoft Store stub，必須使用 `py` 呼叫 Python。插件路徑：`%USERPROFILE%\.claude\plugins\cache\claude-plugins-official\hookify\unknown\hooks\hooks.json`。
+- 前端使用 `src/utils/platform.ts` 的 `getPlatform()` / `isWindows()` / `isMacOS()` / `isLinux()`（基於 `navigator.userAgent`）
+- `main.tsx` 啟動時呼叫 `detectPlatform()` 預熱快取
+- UI 應用模式：預設值依平台設定（如 StatusLineTab 的 `langFilter`、AdvancedTab 的 shell 排序），但不應完全隱藏其他平台選項（使用者可能在為其他機器設定）
+
+### Hook 範本佔位符
+
+`src/components/tabs/hookTemplates.ts` 與 `StatusLineTab.tsx` 的 Python 範本使用 `{{PYTHON}}` 佔位符，套用時由 `src/utils/commandMaterializer.ts` 的 `materializeCommand()` 替換為：
+
+- Windows: `py`（Python Launcher，`python3` 在 Windows 常指向 Microsoft Store stub）
+- macOS/Linux: `python3`
+
+插件路徑（hookify）：`%USERPROFILE%/.claude/plugins/cache/claude-plugins-official/hookify/unknown/hooks/hooks.json`（由 `resolvePath()` 展開）。

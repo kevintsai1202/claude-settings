@@ -10,18 +10,47 @@ import Toggle from '../ui/Toggle';
 import TagArrayInput from '../ui/TagArrayInput';
 import ComboBox from '../ui/ComboBox';
 import type { ClaudeSettings, AttributionSettings, WorktreeSettings } from '../../types/settings';
+import { getPlatform } from '../../utils/platform';
 import './TabContent.css';
 
-// 常見 Shell 路徑（依作業系統）
-const SHELL_OPTIONS = [
-  { value: '/bin/bash',                          label: '/bin/bash',                          hint: 'macOS/Linux' },
-  { value: '/bin/zsh',                           label: '/bin/zsh',                           hint: 'macOS 預設' },
-  { value: '/bin/sh',                            label: '/bin/sh',                            hint: 'POSIX' },
-  { value: '/usr/bin/fish',                      label: '/usr/bin/fish',                      hint: 'Fish shell' },
-  { value: 'pwsh',                               label: 'pwsh',                               hint: 'PowerShell 7+' },
-  { value: 'powershell.exe',                     label: 'powershell.exe',                     hint: 'Windows PowerShell' },
-  { value: 'cmd.exe',                            label: 'cmd.exe',                            hint: 'Windows cmd' },
+// 常見 Shell 路徑（跨作業系統；依當前平台排序，推薦項會加 ✅）
+type ShellOption = { value: string; label: string; hint: string; platform: 'windows' | 'unix' | 'cross' };
+const ALL_SHELL_OPTIONS: ShellOption[] = [
+  { value: '/bin/bash',      label: '/bin/bash',      hint: 'macOS/Linux',         platform: 'unix' },
+  { value: '/bin/zsh',       label: '/bin/zsh',       hint: 'macOS 預設',          platform: 'unix' },
+  { value: '/bin/sh',        label: '/bin/sh',        hint: 'POSIX',               platform: 'unix' },
+  { value: '/usr/bin/fish',  label: '/usr/bin/fish',  hint: 'Fish shell',          platform: 'unix' },
+  { value: 'pwsh',           label: 'pwsh',           hint: 'PowerShell 7+',       platform: 'cross' },
+  { value: 'powershell.exe', label: 'powershell.exe', hint: 'Windows PowerShell', platform: 'windows' },
+  { value: 'cmd.exe',        label: 'cmd.exe',        hint: 'Windows cmd',        platform: 'windows' },
 ];
+
+/**
+ * 依當前作業系統排序 shell 選項：
+ * - 當前平台適用者排在前，hint 加 "✅ 推薦"
+ * - 其他選項仍保留（使用者可能要替其他機器設定）
+ */
+const buildShellOptions = (): { value: string; label: string; hint: string }[] => {
+  const cur = getPlatform();
+  const score = (opt: ShellOption): number => {
+    if (opt.platform === 'cross') return 1;
+    if (cur === 'windows' && opt.platform === 'windows') return 0;
+    if ((cur === 'macos' || cur === 'linux') && opt.platform === 'unix') return 0;
+    return 2;
+  };
+  return [...ALL_SHELL_OPTIONS]
+    .sort((a, b) => score(a) - score(b))
+    .map((opt) => {
+      const s = score(opt);
+      return {
+        value: opt.value,
+        label: opt.label,
+        hint: s === 0 ? `✅ ${opt.hint}` : opt.hint,
+      };
+    });
+};
+
+const SHELL_OPTIONS = buildShellOptions();
 
 // Force Login Method 官方支援值
 const LOGIN_METHOD_OPTIONS = [

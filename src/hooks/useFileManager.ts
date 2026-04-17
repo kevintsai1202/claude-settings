@@ -8,6 +8,11 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../store/settingsStore';
 import type { SettingsLayer, ClaudeSettings, GlobalSettings } from '../types/settings';
+import {
+  DEFAULT_USER_PATH,
+  DEFAULT_GLOBAL_PATH,
+  DEFAULT_USER_CLAUDE_MD,
+} from '../utils/defaultPaths';
 
 let cachedHomeDir: string | null = null;
 const getHomeDir = async (): Promise<string> => {
@@ -55,7 +60,7 @@ export const useFileManager = () => {
    * 從磁碟載入全域設定（~/.claude.json）
    */
   const loadGlobalSettings = async () => {
-    const rawPath = '%USERPROFILE%/.claude.json';
+    const rawPath = DEFAULT_GLOBAL_PATH;
     const path = await resolvePath(rawPath);
     try {
       const fileExists = await exists(path);
@@ -202,9 +207,10 @@ export const useFileManager = () => {
 
     store.getState().setProjectDir(selected);
 
-    const projectPath = `${selected}\\.claude\\settings.json`;
-    const localPath   = `${selected}\\.claude\\settings.local.json`;
-    const projectMd   = `${selected}\\CLAUDE.md`;
+    // 正斜線路徑跨平台皆可用；Tauri FS 在 Windows 也接受
+    const projectPath = `${selected}/.claude/settings.json`;
+    const localPath   = `${selected}/.claude/settings.local.json`;
+    const projectMd   = `${selected}/CLAUDE.md`;
 
     await Promise.all([
       loadFile('project', projectPath),
@@ -217,8 +223,8 @@ export const useFileManager = () => {
    * 載入 User 層設定（App 啟動時呼叫）
    */
   const loadUserSettings = async () => {
-    await loadFile('user', '%USERPROFILE%\\.claude\\settings.json');
-    await loadClaudeMd('global', '%USERPROFILE%\\.claude\\CLAUDE.md');
+    await loadFile('user', DEFAULT_USER_PATH);
+    await loadClaudeMd('global', DEFAULT_USER_CLAUDE_MD);
     await loadGlobalSettings();
   };
 
