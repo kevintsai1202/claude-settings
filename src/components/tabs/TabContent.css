@@ -672,3 +672,123 @@
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── ClaudeMd @path 引用面板 ── */
+.md-editor-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+  min-height: 0;
+}
+
+.md-editor-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.md-editor-pane .md-textarea {
+  flex: 1;
+  min-height: 0;
+}
+
+.md-imports-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.md-imports-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.md-imports-count {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.md-imports-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  max-height: 160px;
+}
+
+.md-imports-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 3px;
+  color: var(--text-primary);
+}
+
+.md-imports-item:hover {
+  background: var(--bg-elevated);
+}
+
+.md-imports-item--active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.md-imports-empty {
+  padding: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.md-imports-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.md-imports-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-elevated);
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.md-imports-preview-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.md-imports-preview-error {
+  padding: 10px;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
