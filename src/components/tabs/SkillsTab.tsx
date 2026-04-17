@@ -64,6 +64,13 @@ const SkillsTab: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
 
+  // selectedId 失效時自動清空,避免右側殘留已不存在的資源
+  useEffect(() => {
+    if (selectedId && !skills.find((s) => s.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [skills, selectedId]);
+
   const filtered = useMemo(() => {
     return skills
       .filter((s) => (scope === 'all' ? true : s.scope === scope))

@@ -63,6 +63,13 @@ const OutputStylesTab: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
 
+  // selectedId 失效時自動清空,避免右側殘留已不存在的資源
+  useEffect(() => {
+    if (selectedId && !outputStyles.find((o) => o.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [outputStyles, selectedId]);
+
   const filtered = useMemo(() => {
     return outputStyles
       .filter((o) => (scope === 'all' ? true : o.scope === scope))

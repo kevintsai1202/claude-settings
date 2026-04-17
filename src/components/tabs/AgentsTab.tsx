@@ -76,6 +76,13 @@ const AgentsTab: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
 
+  // selectedId 失效時自動清空,避免右側殘留已不存在的資源
+  useEffect(() => {
+    if (selectedId && !agents.find((a) => a.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [agents, selectedId]);
+
   /** 套用過濾與排序後的 agents */
   const filtered = useMemo(() => {
     return agents
