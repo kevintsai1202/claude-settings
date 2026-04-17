@@ -1,0 +1,113 @@
+.resource-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.resource-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.resource-editor__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.resource-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.resource-editor__extra {
+  border: 1px dashed var(--border);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+
+.resource-editor__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 50%;
+  overflow-y: auto;
+}
+
+.resource-editor__body-section {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resource-editor__body-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.resource-editor__body {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  resize: none;
+}
+
+.resource-editor__error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: var(--radius-sm);
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field-row__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.field-row__required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.field-row__input,
+.field-row__textarea {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.field-row__textarea {
+  min-height: 50px;
+  resize: vertical;
+}
+
+.field-row__help {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}

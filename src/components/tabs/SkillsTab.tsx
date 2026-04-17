@@ -1,30 +1,75 @@
 /**
- * SkillsTab — Skills 顯示
+ * SkillsTab — Skills 顯示與管理
  * 讀取 ~/.claude/skills/[name]/SKILL.md 與 <project>/.claude/skills/[name]/SKILL.md
  * 每個 skill 是一個資料夾，其下 SKILL.md 為主文件，可能還有 references/scripts 等子資源
+ * 支援新建(ensureDir + createResourceFile)、編輯、刪除(遞迴刪除資料夾)
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, RefreshCw, FolderOpen, Folder } from 'lucide-react';
+import { BookOpen, RefreshCw, FolderOpen, Folder, Plus, Trash2, Pencil } from 'lucide-react';
 import { useAppStore } from '../../store/settingsStore';
 import { useResourceLoader } from '../../hooks/useResourceLoader';
+import { useFileManager } from '../../hooks/useFileManager';
+import { stringifyFrontmatter } from '../../utils/frontmatter';
+import ResourceEditor, { type FieldDef } from './editors/ResourceEditor';
 import type { SkillFile } from '../../types/settings';
 import './TabContent.css';
 import './ResourceTab.css';
 
+/** Skill 表單欄位定義 */
+const SKILL_FIELDS: FieldDef[] = [
+  {
+    key: 'name',
+    label: '名稱(name)',
+    kind: 'text',
+    required: true,
+    placeholder: '與資料夾同名,例如:pdf-processing',
+    helpText: '必須與資料夾名相同,第一版不支援改名',
+  },
+  {
+    key: 'description',
+    label: '描述(description)',
+    kind: 'textarea',
+    required: true,
+    helpText: '用來觸發 skill 的語意描述,Claude 據此判斷何時載入',
+  },
+  {
+    key: 'allowed-tools',
+    label: '允許工具(allowed-tools)',
+    kind: 'tags',
+    placeholder: '例如:Read, Edit, Bash',
+  },
+];
+
 type ScopeFilter = 'all' | 'user' | 'project';
+
+/** 編輯器模式：閒置 / 新建 / 編輯 */
+type SkillEditorMode =
+  | { kind: 'idle' }
+  | { kind: 'create'; scope: 'user' | 'project' }
+  | { kind: 'edit'; skillId: string };
 
 const SkillsTab: React.FC = () => {
   const { skills, projectDir } = useAppStore();
   const { loadSkills } = useResourceLoader();
+  const { ensureDir, createResourceFile, updateResourceFile, deleteResourceDir } = useFileManager();
 
   const [search, setSearch] = useState('');
   const [scope, setScope] = useState<ScopeFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** 右側面板目前模式 */
+  const [mode, setMode] = useState<SkillEditorMode>({ kind: 'idle' });
 
   useEffect(() => {
     loadSkills();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
+
+  // selectedId 失效時自動清空,避免右側殘留已不存在的資源
+  useEffect(() => {
+    if (selectedId && !skills.find((s) => s.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [skills, selectedId]);
 
   const filtered = useMemo(() => {
     return skills
@@ -45,6 +90,71 @@ const SkillsTab: React.FC = () => {
   /** 統計 */
   const userCount = skills.filter((s) => s.scope === 'user').length;
   const projectCount = skills.filter((s) => s.scope === 'project').length;
+
+  /**
+   * 解析 skill 資料夾路徑
+   * @param scope - user 或 project 範圍
+   * @param name - skill 名稱（即資料夾名）
+   */
+  const resolveSkillDir = (skillScope: 'user' | 'project', name: string): string => {
+    if (skillScope === 'project') {
+      if (!projectDir) throw new Error('尚未選擇專案目錄');
+      return `${projectDir}/.claude/skills/${name}`;
+    }
+    return `%USERPROFILE%/.claude/skills/${name}`;
+  };
+
+  /**
+   * 儲存 skill（新建或更新）
+   * @param data - frontmatter 欄位資料
+   * @param body - SKILL.md 主體內容
+   */
+  const handleSaveSkill = async (
+    data: Record<string, string | string[]>,
+    body: string,
+  ) => {
+    if (mode.kind === 'idle') return;
+    const name = (data.name as string).trim();
+    if (!/^[a-z0-9-]+$/.test(name)) {
+      throw new Error('name 僅允許小寫英文、數字與連字號(-)');
+    }
+    const content = stringifyFrontmatter(data, body);
+    if (mode.kind === 'create') {
+      const dir = resolveSkillDir(mode.scope, name);
+      await ensureDir(dir);
+      await createResourceFile(`${dir}/SKILL.md`, content);
+    } else {
+      // 編輯模式：禁止改名（資料夾與名稱綁定）
+      const target = skills.find((s) => s.id === mode.skillId);
+      if (!target) throw new Error('找不到目標 Skill');
+      if (name !== target.name) {
+        throw new Error(
+          'Skill 名稱與資料夾綁定,若要改名請於檔案系統手動搬移資料夾後再重新載入。',
+        );
+      }
+      await updateResourceFile(target.path, content);
+    }
+    await loadSkills();
+    setMode({ kind: 'idle' });
+  };
+
+  /**
+   * 刪除 skill 資料夾（遞迴）
+   * @param skillId - 要刪除的 skill id
+   */
+  const handleDeleteSkill = async (skillId: string) => {
+    const target = skills.find((s) => s.id === skillId);
+    if (!target) return;
+    const ok = window.confirm(
+      `確定要刪除 Skill「${target.name}」嗎?\n\n` +
+      `此操作會遞迴刪除整個資料夾:\n${target.dir}\n\n` +
+      `若資料夾內含 references/ 或 scripts/ 子資料夾將一併刪除。\n此操作不可復原。`,
+    );
+    if (!ok) return;
+    await deleteResourceDir(target.dir);
+    await loadSkills();
+    if (selectedId === skillId) setSelectedId(null);
+  };
 
   return (
     <div className="tab-content scroll-area">
@@ -95,7 +205,17 @@ const SkillsTab: React.FC = () => {
             </button>
           ))}
         </div>
-        <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => loadSkills()}>
+        {/* 新建按鈕 */}
+        <button
+          className="btn-primary"
+          style={{ padding: '6px 12px', fontSize: 12 }}
+          onClick={() => setMode({ kind: 'create', scope: scope === 'project' ? 'project' : 'user' })}
+          title="新建 Skill"
+        >
+          <Plus size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+          新建
+        </button>
+        <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => loadSkills()}>
           <RefreshCw size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
           重新載入
         </button>
@@ -116,7 +236,7 @@ const SkillsTab: React.FC = () => {
               <li
                 key={s.id}
                 className={`resource-list__item${selected?.id === s.id ? ' resource-list__item--selected' : ''}`}
-                onClick={() => setSelectedId(s.id)}
+                onClick={() => { setSelectedId(s.id); setMode({ kind: 'idle' }); }}
               >
                 <div className="resource-list__name">
                   <BookOpen size={12} />
@@ -129,8 +249,27 @@ const SkillsTab: React.FC = () => {
           </ul>
         )}
 
-        {selected ? (
+        {/* 右側面板：依模式渲染 */}
+        {mode.kind === 'idle' && selected && (
           <div className="resource-detail">
+            {/* 操作工具列 */}
+            <div className="resource-detail__toolbar">
+              <button
+                className="btn-secondary"
+                onClick={() => setMode({ kind: 'edit', skillId: selected.id })}
+              >
+                <Pencil size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                編輯 SKILL.md
+              </button>
+              <button
+                className="btn-danger"
+                onClick={() => handleDeleteSkill(selected.id)}
+              >
+                <Trash2 size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                刪除資料夾
+              </button>
+            </div>
+
             <div className="resource-detail__header">
               <span className="resource-detail__title">
                 {selected.displayName ?? selected.name}
@@ -149,7 +288,7 @@ const SkillsTab: React.FC = () => {
               <span className="resource-detail__meta-val mono">
                 {selected.allowedTools && selected.allowedTools.length > 0
                   ? selected.allowedTools.join(', ')
-                  : '（繼承）'}
+                  : '(繼承)'}
               </span>
 
               <span className="resource-detail__meta-key">
@@ -196,13 +335,51 @@ const SkillsTab: React.FC = () => {
             <div className="section-title" style={{ fontSize: 12, marginTop: 12, marginBottom: 8 }}>
               SKILL.md Content
             </div>
-            <pre className="resource-detail__body">{selected.body.trim() || '（空白）'}</pre>
+            <pre className="resource-detail__body">{selected.body.trim() || '(空白)'}</pre>
           </div>
-        ) : (
+        )}
+
+        {mode.kind === 'idle' && !selected && (
           <div className="resource-detail resource-empty">
             選擇左側 skill 以查看詳情
           </div>
         )}
+
+        {/* 新建模式 */}
+        {mode.kind === 'create' && (
+          <div className="resource-detail">
+            <ResourceEditor
+              title={`新建 Skill(${mode.scope === 'user' ? 'User' : 'Project'} 範圍)`}
+              fields={SKILL_FIELDS}
+              initialData={{ name: '', description: '', 'allowed-tools': [] }}
+              initialBody={"# Skill 說明\n\n在此撰寫 Skill 的主體內容(instructions / examples)..."}
+              onSave={handleSaveSkill}
+              onCancel={() => setMode({ kind: 'idle' })}
+            />
+          </div>
+        )}
+
+        {/* 編輯模式 */}
+        {mode.kind === 'edit' && (() => {
+          const target = skills.find((s) => s.id === mode.skillId);
+          if (!target) return null;
+          return (
+            <div className="resource-detail">
+              <ResourceEditor
+                title={`編輯 Skill:${target.name}`}
+                fields={SKILL_FIELDS}
+                initialData={{
+                  name: target.name,
+                  description: target.description ?? '',
+                  'allowed-tools': target.allowedTools ?? [],
+                }}
+                initialBody={target.body}
+                onSave={handleSaveSkill}
+                onCancel={() => setMode({ kind: 'idle' })}
+              />
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-0078D4?logo=apple)
-![Version](https://img.shields.io/badge/Version-v3.0.2-7c3aed)
+![Version](https://img.shields.io/badge/Version-v3.1.0-7c3aed)
 
 ---
 
@@ -14,10 +14,10 @@
 
 | 平台 | 類型 | 檔案 | 說明 |
 |------|------|------|------|
-| Windows | NSIS 安裝程式 | `Claude Settings Manager_3.0.2_x64-setup.exe` | 推薦使用；體積小，支援自訂安裝路徑 |
-| Windows | MSI 安裝程式 | `Claude Settings Manager_3.0.2_x64_en-US.msi` | 企業派送／Group Policy 適用 |
-| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.0.2_aarch64.dmg` | Apple Silicon（M1/M2/M3）適用 |
-| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.0.2_x64.dmg` | Intel Mac 適用 |
+| Windows | NSIS 安裝程式 | `Claude Settings Manager_3.1.0_x64-setup.exe` | 推薦使用；體積小，支援自訂安裝路徑 |
+| Windows | MSI 安裝程式 | `Claude Settings Manager_3.1.0_x64_en-US.msi` | 企業派送／Group Policy 適用 |
+| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.1.0_aarch64.dmg` | Apple Silicon（M1/M2/M3）適用 |
+| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.1.0_x64.dmg` | Intel Mac 適用 |
 
 > 至 [GitHub Releases](https://github.com/kevintsai1202/claude-settings/releases/latest) 下載最新版本。
 >
@@ -48,7 +48,7 @@ Claude Code 的設定散落在多個 JSON、CLAUDE.md、MCP 設定、Agents、Co
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ⚙ Claude Settings Manager  v3.0.2       [⟲ 還原][💾 儲存][🌙]  │
+│  ⚙ Claude Settings Manager  v3.1.0       [⟲ 還原][💾 儲存][🌙]  │
 ├────────────────┬────────────────────────────────────────────────┤
 │ [📁 myproject▼]│ [⚙ 設定(7)] [📚 資源(6)] [📂 文件(3)]          │
 │ ─────────────  │ [基本設定][Permissions][Hooks][Env][Sandbox]... │
@@ -407,6 +407,15 @@ claude-settings/
 ---
 
 ## 版本日誌
+
+### v3.1.0 — 2026-04-17
+
+- ✨ **資源檔完整 CRUD**：Agents / Commands / Output Styles / Skills 四類資源支援建立、編輯、刪除；新增共用 `ResourceEditor` 元件統一處理 frontmatter + 內文編輯體驗。
+- 🤖 **Subagent 範本庫**：內建多主題範本（core / quality / lang / devex / data / infra），一鍵套用並自動處理檔名衝突（`-1` / `-2` 後綴，最多 99）與範圍解析。
+- 🔗 **CLAUDE.md `@path` 引用偵測**：自動解析檔案內 `@path` 形式的引用並於右側面板預覽目標內容。
+- 📊 **CLAUDE.md 大小提示**：即時顯示字元數 / 行數 / 預估 token 數，超過門檻時顯示警告。
+- 🛡️ **Output Styles 內建保護 / Skills 資料夾語意**：避免誤刪內建樣式；Skills 採資料夾結構管理（`<name>/SKILL.md`）。
+- 🧩 **Frontmatter round-trip 序列化**：新增 `stringifyFrontmatter()` 工具，保留 body 與空白不失真。
 
 ### v3.0.2 — 2026-04-17
 
