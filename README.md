@@ -5,19 +5,23 @@
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows)
-![Version](https://img.shields.io/badge/Version-v3.0.0-7c3aed)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-0078D4?logo=apple)
+![Version](https://img.shields.io/badge/Version-v3.0.2-7c3aed)
 
 ---
 
 ## 下載
 
-| 類型 | 檔案 | 說明 |
-|------|------|------|
-| NSIS 安裝程式 | `Claude Settings Manager_3.0.0_x64-setup.exe` | 推薦使用；體積小，支援自訂安裝路徑 |
-| MSI 安裝程式 | `Claude Settings Manager_3.0.0_x64_en-US.msi` | 企業派送／Group Policy 適用 |
+| 平台 | 類型 | 檔案 | 說明 |
+|------|------|------|------|
+| Windows | NSIS 安裝程式 | `Claude Settings Manager_3.0.2_x64-setup.exe` | 推薦使用；體積小，支援自訂安裝路徑 |
+| Windows | MSI 安裝程式 | `Claude Settings Manager_3.0.2_x64_en-US.msi` | 企業派送／Group Policy 適用 |
+| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.0.2_aarch64.dmg` | Apple Silicon（M1/M2/M3）適用 |
+| macOS | DMG 磁碟映像 | `Claude Settings Manager_3.0.2_x64.dmg` | Intel Mac 適用 |
 
 > 至 [GitHub Releases](https://github.com/kevintsai1202/claude-settings/releases/latest) 下載最新版本。
+>
+> **macOS 首次開啟提示：** 若被 Gatekeeper 阻擋，請在 Finder 中**右鍵 → 開啟**一次；或執行 `xattr -cr "/Applications/Claude Settings Manager.app"` 解除隔離屬性。
 
 ---
 
@@ -44,7 +48,7 @@ Claude Code 的設定散落在多個 JSON、CLAUDE.md、MCP 設定、Agents、Co
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ⚙ Claude Settings Manager  v3.0.0       [⟲ 還原][💾 儲存][🌙]  │
+│  ⚙ Claude Settings Manager  v3.0.2       [⟲ 還原][💾 儲存][🌙]  │
 ├────────────────┬────────────────────────────────────────────────┤
 │ [📁 myproject▼]│ [⚙ 設定(7)] [📚 資源(6)] [📂 文件(3)]          │
 │ ─────────────  │ [基本設定][Permissions][Hooks][Env][Sandbox]... │
@@ -182,15 +186,29 @@ Managed（唯讀）> Local > Project > User
 
 | 平台 | 狀態 | 備註 |
 |------|------|------|
-| Windows 11 / 10 | ✅ 主要支援 | 所有功能可用；Windows 10 需手動安裝 WebView2 |
-| macOS | ⚠ 部分支援 | Tauri 可跨平台編譯；但部分硬編碼路徑（Managed 層、Python `py` launcher）需手動修改 |
+| Windows 11 / 10 | ✅ 完整支援 | 所有功能可用；Windows 10 需手動安裝 WebView2 |
+| macOS 12+ (Apple Silicon / Intel) | ✅ 完整支援 | v3.0.2 起支援；CI 自動打包 DMG；Managed 層路徑與 Python launcher (`python3`) 已平台感知 |
 | Linux | ⚠ 實驗性 | 尚未測試；資源路徑需驗證 |
+
+### 平台差異一覽
+
+| 項目 | Windows | macOS |
+|------|---------|-------|
+| Managed 層路徑 | `C:\Program Files\ClaudeCode\managed-settings.json` | `/Library/Application Support/ClaudeCode/managed-settings.json` |
+| User 層路徑 | `%USERPROFILE%\.claude\settings.json` | `$HOME/.claude/settings.json` |
+| Python launcher（Hook/StatusLine 範本） | `py`（Python Launcher for Windows） | `python3` |
+| 打包產物 | `.msi` / `.exe`（NSIS） | `.dmg` / `.app` |
+| Shell 偏好（進階設定） | PowerShell / cmd 優先 | zsh / bash 優先 |
+
+> UI 會依執行平台自動挑選對應的預設值，但仍保留跨平台選項，讓你可在 macOS 上為 Windows 機器編輯設定（反之亦然）。
 
 ---
 
 ## 環境需求與安裝
 
 ### 必要軟體
+
+#### Windows
 
 | 軟體 | 版本需求 | 用途 |
 |------|----------|------|
@@ -200,6 +218,16 @@ Managed（唯讀）> Local > Project > User
 | [Git](https://git-scm.com/) | 任意版本 | 版本控制（Status Line Git 範本需要） |
 | [Python](https://www.python.org/downloads/) | 3.8+（建議透過官方安裝） | Status Line Command 範本使用 `py` launcher |
 | WebView2 Runtime | 自動 | Windows 11 已預裝；Windows 10 需手動安裝 |
+
+#### macOS
+
+| 軟體 | 版本需求 | 用途 |
+|------|----------|------|
+| Xcode Command Line Tools | 任意版本 | C/C++ 工具鏈；`xcode-select --install` |
+| [Node.js](https://nodejs.org/) | 18+ | 前端建置與 npm 指令 |
+| [Rust (rustup)](https://rustup.rs/) | 1.80+ | Tauri 後端編譯 |
+| Python 3 | 3.8+ | Hook / Status Line 範本透過 `python3` 呼叫 |
+| Git | 任意版本 | macOS 安裝 Xcode CLT 時附帶 |
 
 > **重要：Python 安裝注意事項**
 > 請使用 **[python.org 官方安裝程式](https://www.python.org/downloads/)**，**不要** 使用 Microsoft Store 版本。
@@ -260,23 +288,53 @@ Windows 11 已內建 WebView2。Windows 10 使用者至 [Microsoft WebView2](htt
 
 ---
 
+### macOS 安裝步驟
+
+```bash
+# 1. Xcode Command Line Tools
+xcode-select --install
+
+# 2. Node.js（建議用 Homebrew 或 nvm）
+brew install node         # 或: nvm install --lts
+
+# 3. Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+
+# 4. 驗證
+node --version && cargo --version && python3 --version
+```
+
+---
+
 ### 克隆並啟動
 
-```powershell
+```bash
 git clone https://github.com/kevintsai1202/claude-settings.git
 cd claude-settings
 npm install
 npm run tauri dev
 ```
 
-### 打包成 .exe 安裝程式
+### 打包安裝程式
+
+**Windows**：
 
 ```powershell
 npm run tauri build
 # 輸出位置：
-#   src-tauri\target\release\bundle\nsis\  （NSIS 安裝程式）
-#   src-tauri\target\release\bundle\msi\   （MSI 安裝程式）
+#   src-tauri\target\release\bundle\nsis\  （NSIS 安裝程式 .exe）
+#   src-tauri\target\release\bundle\msi\   （MSI 安裝程式 .msi）
 #   src-tauri\target\release\tauri-app.exe  （免安裝執行檔）
+```
+
+**macOS**：
+
+```bash
+npm run tauri build
+# 輸出位置：
+#   src-tauri/target/release/bundle/dmg/    （DMG 磁碟映像）
+#   src-tauri/target/release/bundle/macos/  （.app bundle）
 ```
 
 ---
@@ -345,3 +403,22 @@ claude-settings/
 ## 貢獻
 
 歡迎回報 bug、建議新 Hook / StatusLine 範本，或提出 PR 改進 UI / 驗證邏輯。
+
+---
+
+## 版本日誌
+
+### v3.0.2 — 2026-04-17
+
+- ✨ **macOS 完整支援**：新增 macOS 打包產物（`.dmg` / `.app`），CI 以 `windows-latest` + `macos-latest` matrix 自動建置並建立 draft release。
+- 🔧 **跨平台路徑感知**：`resolvePath()` 依平台展開 `%USERPROFILE%` / `$HOME`；Managed 層路徑依 OS 切換（`/Library/Application Support/ClaudeCode/…`）。
+- 🐍 **Python launcher 平台適配**：Hook / StatusLine 範本的 `{{PYTHON}}` 佔位符依平台替換為 `py`（Windows）或 `python3`（macOS/Linux）。
+- 🎨 **UI 平台感知預設**：StatusLine 語言過濾、進階設定 Shell 排序依執行平台挑選預設值。
+
+### v3.0.1
+
+- 🐛 修復 Tauri v2 視窗無法關閉的問題（徹底移除 `onCloseRequested`）。
+
+### v3.0.0
+
+- 🚀 16 Tab 雙層導航、Draft Mode、資源瀏覽器、社群範本庫。
