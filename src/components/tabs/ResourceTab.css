@@ -169,3 +169,11 @@
   font-size: 13px;
   padding: 40px;
 }
+
+.resource-detail__toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
