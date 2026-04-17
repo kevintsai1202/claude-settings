@@ -3,7 +3,7 @@
  * saveFile/saveGlobalFile/saveClaudeMd 改為僅更新 draft（store），不寫磁碟
  * 需要寫磁碟時呼叫 commitLayer / commitGlobal / commitClaudeMd 或 commitAll
  */
-import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, exists, mkdir, remove } from '@tauri-apps/plugin-fs';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../store/settingsStore';
@@ -188,6 +188,56 @@ export const useFileManager = () => {
     return written;
   };
 
+  // ─── 資源檔案操作(供 Agents/Commands/Skills/OutputStyles 使用)──────
+  /** 確保資料夾存在(遞迴建立) */
+  const ensureDir = async (dirPath: string): Promise<void> => {
+    const normalized = await resolvePath(dirPath);
+    if (!(await exists(normalized))) {
+      await mkdir(normalized, { recursive: true });
+    }
+  };
+
+  /**
+   * 建立新資源檔案:若檔案已存在則擲出 Error。
+   * 寫入前會先確保 parent 資料夾存在。
+   */
+  const createResourceFile = async (filePath: string, content: string): Promise<void> => {
+    const normalized = await resolvePath(filePath);
+    if (await exists(normalized)) {
+      throw new Error(`檔案已存在:${filePath}`);
+    }
+    const parent = normalized.replace(/\/[^/]+$/, '');
+    if (parent && parent !== normalized) {
+      await ensureDir(parent);
+    }
+    await writeTextFile(normalized, content);
+  };
+
+  /** 更新現有資源檔案內容(無檔案時擲出 Error) */
+  const updateResourceFile = async (filePath: string, content: string): Promise<void> => {
+    const normalized = await resolvePath(filePath);
+    if (!(await exists(normalized))) {
+      throw new Error(`檔案不存在:${filePath}`);
+    }
+    await writeTextFile(normalized, content);
+  };
+
+  /** 刪除資源檔案(不存在時 no-op) */
+  const deleteResourceFile = async (filePath: string): Promise<void> => {
+    const normalized = await resolvePath(filePath);
+    if (await exists(normalized)) {
+      await remove(normalized);
+    }
+  };
+
+  /** 刪除資源資料夾(遞迴;不存在時 no-op)。供 Skills 刪除整個資料夾使用。 */
+  const deleteResourceDir = async (dirPath: string): Promise<void> => {
+    const normalized = await resolvePath(dirPath);
+    if (await exists(normalized)) {
+      await remove(normalized, { recursive: true });
+    }
+  };
+
   // ─── Undo（復原單步）─────────────────────────────────
   const undoFile = (layer: SettingsLayer) => store.getState().undoFile(layer);
   const undoGlobal = () => store.getState().undoGlobal();
@@ -248,5 +298,11 @@ export const useFileManager = () => {
     undoFile,
     undoGlobal,
     undoClaudeMd,
+    // 資源檔案操作
+    ensureDir,
+    createResourceFile,
+    updateResourceFile,
+    deleteResourceFile,
+    deleteResourceDir,
   };
 };
