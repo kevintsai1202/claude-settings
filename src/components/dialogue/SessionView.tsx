@@ -7,6 +7,8 @@ import { Trash2 } from 'lucide-react';
 import { useDialogueStore } from '../../store/dialogueStore';
 import { useDialogue } from '../../hooks/useDialogue';
 import MessageBubble from './MessageBubble';
+import { groupBySidechain } from '../../utils/jsonlParser';
+import SubagentGroup from './SubagentGroup';
 import type { DialogueEvent, DialogueViewMode } from '../../types/dialogue';
 
 interface Props {
@@ -100,15 +102,34 @@ const SessionView: React.FC<Props> = ({ sessionId, onRequestDelete }) => {
         {visible.length === 0 && (
           <div className="dialogue-view__empty">（此模式下無可顯示內容）</div>
         )}
-        {visible.map((ev) => (
-          <MessageBubble
-            key={ev.uuid}
-            event={ev}
-            highlight={highlight}
-            rawMode={viewMode === 'raw'}
-            showTools={viewMode !== 'chat'}
-          />
-        ))}
+        {viewMode === 'raw'
+          ? visible.map((ev) => (
+              <MessageBubble
+                key={ev.uuid}
+                event={ev}
+                highlight={highlight}
+                rawMode
+                showTools
+              />
+            ))
+          : groupBySidechain(visible).map((g, idx) =>
+              g.kind === 'sidechain' ? (
+                <SubagentGroup
+                  key={`sub-${idx}`}
+                  events={g.events}
+                  highlight={highlight}
+                  showTools={viewMode !== 'chat'}
+                />
+              ) : (
+                <MessageBubble
+                  key={g.event.uuid}
+                  event={g.event}
+                  highlight={highlight}
+                  rawMode={false}
+                  showTools={viewMode !== 'chat'}
+                />
+              ),
+            )}
       </div>
     </>
   );
