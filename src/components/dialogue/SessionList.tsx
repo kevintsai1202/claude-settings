@@ -155,10 +155,18 @@ const SessionList: React.FC<Props> = ({
                 {items.map((s) => {
                   const active = s.sessionId === selectedId;
                   return (
-                    <button
+                    <div
                       key={s.sessionId}
+                      role="button"
+                      tabIndex={0}
                       className={`session-list__card${active ? ' session-list__card--active' : ''}`}
                       onClick={() => onSelect(s.sessionId)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelect(s.sessionId);
+                        }
+                      }}
                     >
                       <div className="session-list__card-row1">
                         <span className="session-list__card-time">
@@ -183,29 +191,29 @@ const SessionList: React.FC<Props> = ({
                             <Bot size={10} />
                           </span>
                         )}
-                        <span
-                          className="session-list__card-del"
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRequestDelete(s.sessionId);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                          <button
+                            type="button"
+                            className="session-list__card-del"
+                            onClick={(e) => {
                               e.stopPropagation();
                               onRequestDelete(s.sessionId);
-                            }
-                          }}
-                          title="刪除此對話"
-                        >
-                          <Trash2 size={12} />
-                        </span>
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                onRequestDelete(s.sessionId);
+                              }
+                            }}
+                            title="刪除此對話"
+                            aria-label="刪除此對話"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                       </div>
                       <div className="session-list__card-preview">
                         {s.firstPromptPreview || <em>（無使用者訊息）</em>}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

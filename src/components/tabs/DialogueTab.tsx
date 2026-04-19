@@ -15,13 +15,11 @@ const SEARCH_DEBOUNCE_MS = 200;
 const DialogueTab: React.FC = () => {
   const projectDir = useAppStore((s) => s.projectDir);
   const { loadProjectIndex, searchInProject } = useDialogue();
-  const {
-    indexByProject,
-    selectedSessionId,
-    searchQuery,
-    searchResults,
-    loadingIndex,
-  } = useDialogueStore();
+  const indexByProject = useDialogueStore((s) => s.indexByProject);
+  const selectedSessionId = useDialogueStore((s) => s.selectedSessionId);
+  const searchQuery = useDialogueStore((s) => s.searchQuery);
+  const searchResults = useDialogueStore((s) => s.searchResults);
+  const loadingIndex = useDialogueStore((s) => s.loadingIndex);
   const setSelected = useDialogueStore((s) => s.setSelected);
   const setSearchQuery = useDialogueStore((s) => s.setSearchQuery);
 

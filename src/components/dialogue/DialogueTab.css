@@ -183,6 +183,9 @@
   border-radius: 3px;
   color: var(--color-text-muted, #9ca3af);
   display: inline-flex;
+  border: none;
+  background: transparent;
+  font: inherit;
 }
 
 .session-list__card:hover .session-list__card-del,
