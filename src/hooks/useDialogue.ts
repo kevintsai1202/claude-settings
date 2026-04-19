@@ -65,8 +65,29 @@ export const useDialogue = () => {
     store.getState().setLoadingIndex(true);
     try {
       const encoded = encodeProjectPath(projectDir);
-      const folderPath = await resolvePath(`%USERPROFILE%/.claude/projects/${encoded}`);
-      const folderExists = await exists(folderPath);
+      const projectsRoot = await resolvePath('%USERPROFILE%/.claude/projects');
+      // 直接拼出資料夾路徑嘗試
+      let folderPath = `${projectsRoot}/${encoded}`;
+      let folderExists = await exists(folderPath);
+
+      // Fallback：若直接算的路徑不存在，掃描 ~/.claude/projects/ 做 case-insensitive 比對
+      // （Windows 上 Tauri dialog 回傳的磁碟機代號大小寫可能跟 Claude Code 建目錄時不同）
+      if (!folderExists) {
+        try {
+          const rootEntries = await readDir(projectsRoot);
+          const lowerEncoded = encoded.toLowerCase();
+          const match = rootEntries.find(
+            (e) => e.isDirectory && e.name.toLowerCase() === lowerEncoded,
+          );
+          if (match) {
+            folderPath = `${projectsRoot}/${match.name}`;
+            folderExists = true;
+          }
+        } catch {
+          // projectsRoot 本身不存在（使用者從未用過 claude）→ folderExists 維持 false
+        }
+      }
+
       if (!folderExists) {
         const empty: ProjectDialogueIndex = {
           projectDir,
