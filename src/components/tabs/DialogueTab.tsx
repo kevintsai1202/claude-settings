@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/settingsStore';
 import { useDialogue } from '../../hooks/useDialogue';
 import { useDialogueStore } from '../../store/dialogueStore';
 import SessionList from '../dialogue/SessionList';
+import SessionView from '../dialogue/SessionView';
 import '../dialogue/DialogueTab.css';
 
 /** 搜尋輸入 debounce 毫秒 */
@@ -77,13 +78,16 @@ const DialogueTab: React.FC = () => {
         />
       </div>
       <div className="dialogue-tab__view">
-        <div className="dialogue-tab__empty">
-          {loadingIndex
-            ? '載入中…'
-            : selectedSessionId
-            ? '（SessionView 待下一個 task 實作）'
-            : '← 從左側選擇一個對話'}
-        </div>
+        {selectedSessionId ? (
+          <SessionView
+            sessionId={selectedSessionId}
+            onRequestDelete={(id) => setPendingDeleteId(id)}
+          />
+        ) : (
+          <div className="dialogue-tab__empty">
+            {loadingIndex ? '載入中…' : '← 從左側選擇一個對話'}
+          </div>
+        )}
       </div>
       {/* 刪除確認視窗於後續 task（Task 11）接上；暫存 state 先留著 */}
       {pendingDeleteId && (

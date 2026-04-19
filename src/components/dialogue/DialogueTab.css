@@ -206,3 +206,301 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* SessionView */
+.dialogue-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-subtle, #e5e7eb);
+  gap: 10px;
+}
+
+.dialogue-view__header-info {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text, #111);
+}
+
+.dialogue-view__header-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogue-view__header-count {
+  color: var(--color-text-muted, #6b7280);
+}
+
+.dialogue-view__header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dialogue-view__seg {
+  display: inline-flex;
+  border: 1px solid var(--color-border-subtle, #d1d5db);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.dialogue-view__seg-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--color-text, #111);
+  transition: background-color 0.12s;
+}
+
+.dialogue-view__seg-btn:not(:last-child) {
+  border-right: 1px solid var(--color-border-subtle, #d1d5db);
+}
+
+.dialogue-view__seg-btn--active {
+  background: var(--color-accent, #3b82f6);
+  color: #fff;
+}
+
+.dialogue-view__del-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--color-border-subtle, #d1d5db);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text, #111);
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.dialogue-view__del-btn:hover {
+  color: var(--color-danger, #dc2626);
+  border-color: var(--color-danger, #dc2626);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.dialogue-view__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px;
+  min-height: 0;
+}
+
+.dialogue-view__empty {
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* MessageBubble */
+.dialogue-msg {
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dialogue-msg__role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dialogue-msg__body p {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dialogue-msg--user .dialogue-msg__body {
+  background: var(--color-accent-soft, rgba(59, 130, 246, 0.08));
+  border-left: 3px solid var(--color-accent, #3b82f6);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.dialogue-msg--assistant .dialogue-msg__body {
+  background: var(--color-surface-alt, #f9fafb);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+/* Thinking */
+.dialogue-msg__thinking {
+  margin-bottom: 6px;
+}
+
+.dialogue-msg__thinking-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: italic;
+}
+
+.dialogue-msg__thinking-body {
+  background: var(--color-surface-alt, #f3f4f6);
+  border-left: 3px solid var(--color-text-muted, #9ca3af);
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-family: inherit;
+  font-size: 12px;
+  white-space: pre-wrap;
+  font-style: italic;
+  color: var(--color-text-muted, #4b5563);
+}
+
+/* Tool use / result */
+.dialogue-msg__tools {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialogue-msg__tool-use,
+.dialogue-msg__tool-result-box {
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: 4px;
+  background: var(--color-surface-alt, #fafafa);
+  padding: 6px 10px;
+}
+
+.dialogue-msg__tool-use-header,
+.dialogue-msg__tool-result-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 4px;
+}
+
+.dialogue-msg__tool-use-body,
+.dialogue-msg__tool-result-body {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11.5px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.dialogue-msg__err {
+  color: var(--color-danger, #dc2626);
+  margin-left: 6px;
+}
+
+/* Compaction */
+.dialogue-msg--compaction {
+  border: 1px dashed var(--color-border, #9ca3af);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(156, 163, 175, 0.06);
+}
+
+.dialogue-msg__compact-header {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text, #111);
+  font-weight: 600;
+}
+
+.dialogue-msg__compact-hint {
+  font-weight: normal;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.dialogue-msg__compact-body {
+  margin: 8px 0 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px 8px;
+  background: var(--color-surface, #fff);
+  border-radius: 4px;
+}
+
+/* Attachment */
+.dialogue-msg--attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-surface-alt, #f9fafb);
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.dialogue-msg--attachment code {
+  color: var(--color-text, #111);
+}
+
+/* Raw mode */
+.dialogue-msg--raw {
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: var(--color-surface-alt, #fafafa);
+}
+
+.dialogue-msg__raw-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 4px;
+}
+
+.dialogue-msg__raw-body {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.dialogue-msg__expand {
+  background: transparent;
+  border: none;
+  color: var(--color-accent, #3b82f6);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 0 0;
+}
+
+/* 搜尋命中高亮 */
+.dialogue-msg__mark {
+  background: var(--color-accent-soft, rgba(59, 130, 246, 0.25));
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
