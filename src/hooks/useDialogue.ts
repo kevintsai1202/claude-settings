@@ -13,7 +13,6 @@ import {
   readDir,
   readTextFile,
   remove,
-  stat,
 } from '@tauri-apps/plugin-fs';
 import { useAppStore } from '../store/settingsStore';
 import { useDialogueStore } from '../store/dialogueStore';
@@ -88,6 +87,14 @@ export const useDialogue = () => {
         }
       }
 
+      // Debug：讓使用者能在 DevTools 看到實際路徑解析結果
+      console.log('[dialogue] loadProjectIndex', {
+        projectDir,
+        encoded,
+        folderPath,
+        folderExists,
+      });
+
       if (!folderExists) {
         const empty: ProjectDialogueIndex = {
           projectDir,
@@ -99,6 +106,7 @@ export const useDialogue = () => {
         return;
       }
       const entries = await readDir(folderPath);
+      console.log('[dialogue] readDir result', { count: entries.length, first: entries.slice(0, 3) });
       const jsonlEntries = entries.filter(
         (e) => e.isFile && e.name.toLowerCase().endsWith('.jsonl'),
       );
@@ -110,15 +118,16 @@ export const useDialogue = () => {
           const text = await readTextFile(filePath);
           const { events } = parseJsonl(text);
           const { meta } = summarizeSession(events);
-          const st = await stat(filePath);
+          // 用文字長度當 fileSize 近似（避免依賴 Tauri v2 尚未穩定的 stat()）
           return {
             sessionId: e.name.replace(/\.jsonl$/i, ''),
             filePath,
-            fileSize: Number(st.size ?? 0),
+            fileSize: text.length,
             ...meta,
           };
-        } catch {
-          // 檔案被鎖或破損，靜默跳過
+        } catch (err) {
+          // 檔案被鎖或破損，記錄後跳過
+          console.warn('[dialogue] 讀取 session 失敗', filePath, err);
           return null;
         }
       });
