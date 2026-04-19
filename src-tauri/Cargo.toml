@@ -1,6 +1,6 @@
 [package]
 name = "tauri-app"
-version = "3.3.0"
+version = "3.4.0"
 description = "Claude Settings Manager"
 authors = ["Kevin Tsai"]
 edition = "2021"

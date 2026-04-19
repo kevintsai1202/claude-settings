@@ -6,6 +6,21 @@
 
 ---
 
+## [v3.4.0] — 2026-04-19
+
+### 新增
+- **對話分頁（Dialogue）**：檢視當前專案的 Claude Code session 歷史
+  - 依日期分組（今天 / 昨天 / 本週 / 更早），顯示首 prompt 摘要
+  - 三種顆粒度切換：純對話 / 對話+工具 / 完整原始
+  - 跨 session 關鍵字搜尋（debounce 200ms、命中 `<mark>` 高亮、上限 500 筆）
+  - Context compaction 摘要以虛線框特殊呈現（可摺疊）
+  - Subagent (sidechain) 對話以紫色摺疊群組呈現（自動抽取 `subagent_type`）
+  - 刪除 session（二次確認視窗 + path traversal 防護 + toast 回饋）
+- **通用 ConfirmDialog 元件**：破壞性操作的二次確認（`src/components/ui/ConfirmDialog.tsx`）
+
+### 變更
+- `resolvePath` 抽出為 `src/utils/pathResolver.ts`（保留 `homeDir` 快取），供 dialogue 模組與 `useFileManager` 共用
+
 ## [v3.3.0] — 2026-04-18
 
 ### 新增

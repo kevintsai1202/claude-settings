@@ -29,6 +29,7 @@ import OutputStylesTab from './components/tabs/OutputStylesTab';
 import SkillsTab from './components/tabs/SkillsTab';
 import RulesTab from './components/tabs/RulesTab';
 import MemoryTab from './components/tabs/MemoryTab';
+import DialogueTab from './components/tabs/DialogueTab';
 import StatusLineTab from './components/tabs/StatusLineTab';
 import { useAppStore, getTotalDirtyCount } from './store/settingsStore';
 import { useFileManager } from './hooks/useFileManager';
@@ -54,6 +55,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   skills:       SkillsTab,
   rules:        RulesTab,
   memory:       MemoryTab,
+  dialogue:     DialogueTab,
   statusline:   StatusLineTab,
   advanced:     AdvancedTab,
   global:       GlobalTab,

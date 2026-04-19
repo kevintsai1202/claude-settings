@@ -5,7 +5,6 @@
  */
 import { readTextFile, writeTextFile, exists, mkdir, remove } from '@tauri-apps/plugin-fs';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { homeDir } from '@tauri-apps/api/path';
 import { useAppStore } from '../store/settingsStore';
 import type { SettingsLayer, ClaudeSettings, GlobalSettings } from '../types/settings';
 import {
@@ -13,24 +12,7 @@ import {
   DEFAULT_GLOBAL_PATH,
   DEFAULT_USER_CLAUDE_MD,
 } from '../utils/defaultPaths';
-
-let cachedHomeDir: string | null = null;
-const getHomeDir = async (): Promise<string> => {
-  if (!cachedHomeDir) cachedHomeDir = await homeDir();
-  return cachedHomeDir;
-};
-
-/**
- * 解析路徑：%USERPROFILE% → 實際家目錄，統一轉正斜線
- */
-const resolvePath = async (path: string): Promise<string> => {
-  let resolved = path;
-  if (resolved.includes('%USERPROFILE%')) {
-    const home = await getHomeDir();
-    resolved = resolved.replace('%USERPROFILE%', home);
-  }
-  return resolved.replace(/\\/g, '/');
-};
+import { resolvePath } from '../utils/pathResolver';
 
 export const useFileManager = () => {
   const store = useAppStore;
