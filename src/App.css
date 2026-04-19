@@ -49,6 +49,19 @@
   font-family: var(--font-mono);
 }
 
+/* 可點擊的版本號（button 變體）：重置 button 預設樣式並加 hover 提示 */
+.app-header__version--clickable {
+  background: transparent;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.app-header__version--clickable:hover {
+  color: var(--text-primary);
+  border-color: var(--accent, var(--text-primary));
+  background: var(--bg-active);
+}
+
 .app-header__right {
   display: flex;
   align-items: center;

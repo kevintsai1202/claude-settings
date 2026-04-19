@@ -8,6 +8,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { getVersion } from '@tauri-apps/api/app';
 import Sidebar from './components/Sidebar/Sidebar';
 import UpdateDialog from './components/ui/UpdateDialog';
+import ChangelogDialog from './components/ui/ChangelogDialog';
 import { useUpdater } from './hooks/useUpdater';
 import { shouldNotify } from './utils/skippedVersion';
 import TabBar from './components/TabBar/TabBar';
@@ -77,6 +78,7 @@ const App: React.FC = () => {
   const updater = useUpdater();
   /** 控制 UpdateDialog 顯示時機（自動檢查時可能想靜默） */
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
 
   /** 計算目前 dirty 檔案數 */
   const dirtyCount = getTotalDirtyCount(useAppStore.getState());
@@ -193,7 +195,16 @@ const App: React.FC = () => {
             <Settings size={16} />
           </span>
           <span className="app-header__title">Claude Settings Manager</span>
-          {appVersion && <span className="app-header__version">v{appVersion}</span>}
+          {appVersion && (
+            <button
+              className="app-header__version app-header__version--clickable"
+              onClick={() => setChangelogOpen(true)}
+              title="點擊查看更新紀錄"
+              aria-label="檢視更新紀錄"
+            >
+              v{appVersion}
+            </button>
+          )}
         </div>
 
         <div className="app-header__right">
@@ -275,6 +286,13 @@ const App: React.FC = () => {
         updater={updater}
         isOpen={updateDialogOpen}
         onClose={() => setUpdateDialogOpen(false)}
+      />
+
+      {/* 更新紀錄對話框（點擊頂部版本號開啟） */}
+      <ChangelogDialog
+        isOpen={changelogOpen}
+        currentVersion={appVersion}
+        onClose={() => setChangelogOpen(false)}
       />
 
       {/* 主體：左側欄 + 右側內容 */}
