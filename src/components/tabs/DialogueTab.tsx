@@ -1,13 +1,14 @@
 /**
  * DialogueTab — 檢視當前專案的 Claude Code session 歷史
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MessageSquareOff } from 'lucide-react';
 import { useAppStore } from '../../store/settingsStore';
 import { useDialogue } from '../../hooks/useDialogue';
 import { useDialogueStore } from '../../store/dialogueStore';
 import SessionList from '../dialogue/SessionList';
 import SessionView from '../dialogue/SessionView';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import '../dialogue/DialogueTab.css';
 
 /** 搜尋輸入 debounce 毫秒 */
@@ -15,7 +16,7 @@ const SEARCH_DEBOUNCE_MS = 200;
 
 const DialogueTab: React.FC = () => {
   const projectDir = useAppStore((s) => s.projectDir);
-  const { loadProjectIndex, searchInProject } = useDialogue();
+  const { loadProjectIndex, searchInProject, deleteSession } = useDialogue();
   const indexByProject = useDialogueStore((s) => s.indexByProject);
   const selectedSessionId = useDialogueStore((s) => s.selectedSessionId);
   const searchQuery = useDialogueStore((s) => s.searchQuery);
@@ -43,6 +44,31 @@ const DialogueTab: React.FC = () => {
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, projectDir]);
+
+  const pendingMeta = useMemo(() => {
+    if (!pendingDeleteId) return null;
+    const sessions = indexByProject[projectDir ?? '']?.sessions ?? [];
+    return sessions.find((s) => s.sessionId === pendingDeleteId) ?? null;
+  }, [pendingDeleteId, indexByProject, projectDir]);
+
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    setDeleting(true);
+    try {
+      await deleteSession(pendingDeleteId);
+      setToast('✓ 已刪除對話紀錄');
+      setTimeout(() => setToast(null), 2000);
+      setPendingDeleteId(null);
+    } catch (err) {
+      setToast(`✗ 刪除失敗：${err instanceof Error ? err.message : String(err)}`);
+      setTimeout(() => setToast(null), 3500);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (!projectDir) {
     return (
@@ -89,12 +115,26 @@ const DialogueTab: React.FC = () => {
           </div>
         )}
       </div>
-      {/* 刪除確認視窗於後續 task（Task 11）接上；暫存 state 先留著 */}
-      {pendingDeleteId && (
-        <div
-          onClick={() => setPendingDeleteId(null)}
-          style={{ display: 'none' }}
+      {pendingMeta && (
+        <ConfirmDialog
+          isOpen={!!pendingMeta && !deleting}
+          title="刪除此對話紀錄？"
+          message={
+            `開始時間：${pendingMeta.startTime}\n` +
+            `首則 prompt：${pendingMeta.firstPromptPreview || '（無）'}\n` +
+            `檔案：${pendingMeta.filePath}`
+          }
+          warning="此操作不可復原。若此 session 正由 Claude Code 寫入中，刪除可能造成異常。"
+          confirmLabel="刪除"
+          cancelLabel="取消"
+          onCancel={() => setPendingDeleteId(null)}
+          onConfirm={() => {
+            void handleConfirmDelete();
+          }}
         />
+      )}
+      {toast && (
+        <div className="dialogue-tab__toast">{toast}</div>
       )}
     </div>
   );

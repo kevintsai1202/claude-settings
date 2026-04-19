@@ -1,5 +1,6 @@
 /* DialogueTab —— 雙欄佈局 */
 .dialogue-tab {
+  position: relative;
   display: flex;
   height: 100%;
   min-height: 0;
@@ -537,4 +538,17 @@
   margin-top: 8px;
   padding-left: 10px;
   border-left: 1px dashed rgba(139, 92, 246, 0.35);
+}
+
+.dialogue-tab__toast {
+  position: absolute;
+  bottom: 18px;
+  right: 20px;
+  padding: 8px 14px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  font-size: 12px;
+  z-index: 900;
 }
