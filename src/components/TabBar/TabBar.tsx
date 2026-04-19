@@ -23,6 +23,7 @@ import {
   BookOpen,
   Ruler,
   Brain,
+  MessageSquare,
   Settings,
   Layers,
   FolderTree,
@@ -84,6 +85,7 @@ const CATEGORIES: CategoryDef[] = [
     tabs: [
       { id: 'claudemd', label: 'CLAUDE.md', icon: <FileText size={14} /> },
       { id: 'memory',   label: 'Memory',    icon: <Brain size={14} /> },
+      { id: 'dialogue', label: '對話',      icon: <MessageSquare size={14} /> },
       { id: 'merge',    label: 'Merge',     icon: <GitMerge size={14} /> },
       { id: 'json',     label: 'JSON',      icon: <Braces size={14} /> },
     ],
