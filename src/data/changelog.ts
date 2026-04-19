@@ -33,6 +33,22 @@ export interface ChangelogEntry {
 /** 完整變更歷程（新版在前） */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '3.4.0',
+    date: '2026-04-19',
+    summary: '對話分頁：檢視專案 session 歷史、搜尋、subagent 摺疊、刪除',
+    changes: [
+      { kind: 'added', text: '對話分頁（Dialogue）：檢視當前專案的 Claude Code session 歷史' },
+      { kind: 'added', text: 'Session 依日期分組（今天 / 昨天 / 本週 / 更早）、顯示首 prompt 摘要' },
+      { kind: 'added', text: '三種顆粒度切換：純對話 / 對話+工具 / 完整原始' },
+      { kind: 'added', text: '跨 session 關鍵字搜尋（debounce 200ms、命中高亮、上限 500 筆）' },
+      { kind: 'added', text: 'Context compaction 摘要以虛線框特殊呈現、可摺疊' },
+      { kind: 'added', text: 'Subagent (sidechain) 對話以紫色摺疊群組呈現、自動抽取 subagent_type' },
+      { kind: 'added', text: '刪除 session：二次確認視窗 + path traversal 防護 + toast 回饋' },
+      { kind: 'added', text: '通用 ConfirmDialog 元件（破壞性操作的二次確認）' },
+      { kind: 'changed', text: 'resolvePath 抽出為獨立 util（保留 homeDir 快取），供 dialogue 模組共用' },
+    ],
+  },
+  {
     version: '3.3.0',
     date: '2026-04-18',
     summary: 'Rules / Memory 分頁、Agent 雙範圍套用、effort xhigh',

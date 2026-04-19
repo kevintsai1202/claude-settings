@@ -6,7 +6,7 @@
 
 ---
 
-## [Unreleased]
+## [v3.4.0] — 2026-04-19
 
 ### 新增
 - **對話分頁（Dialogue）**：檢視當前專案的 Claude Code session 歷史

@@ -87,14 +87,6 @@ export const useDialogue = () => {
         }
       }
 
-      // Debug：讓使用者能在 DevTools 看到實際路徑解析結果
-      console.log('[dialogue] loadProjectIndex', {
-        projectDir,
-        encoded,
-        folderPath,
-        folderExists,
-      });
-
       if (!folderExists) {
         const empty: ProjectDialogueIndex = {
           projectDir,
@@ -106,7 +98,6 @@ export const useDialogue = () => {
         return;
       }
       const entries = await readDir(folderPath);
-      console.log('[dialogue] readDir result', { count: entries.length, first: entries.slice(0, 3) });
       const jsonlEntries = entries.filter(
         (e) => e.isFile && e.name.toLowerCase().endsWith('.jsonl'),
       );
