@@ -1,18 +1,31 @@
 /**
  * DialogueTab — 檢視當前專案的 Claude Code session 歷史
- * 主 Tab 元件：協調 SessionList + SessionView，並依 projectDir 觸發載入
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquareOff } from 'lucide-react';
 import { useAppStore } from '../../store/settingsStore';
 import { useDialogue } from '../../hooks/useDialogue';
 import { useDialogueStore } from '../../store/dialogueStore';
+import SessionList from '../dialogue/SessionList';
 import '../dialogue/DialogueTab.css';
+
+/** 搜尋輸入 debounce 毫秒 */
+const SEARCH_DEBOUNCE_MS = 200;
 
 const DialogueTab: React.FC = () => {
   const projectDir = useAppStore((s) => s.projectDir);
-  const { loadProjectIndex } = useDialogue();
-  const { loadingIndex, indexByProject } = useDialogueStore();
+  const { loadProjectIndex, searchInProject } = useDialogue();
+  const {
+    indexByProject,
+    selectedSessionId,
+    searchQuery,
+    searchResults,
+    loadingIndex,
+  } = useDialogueStore();
+  const setSelected = useDialogueStore((s) => s.setSelected);
+  const setSearchQuery = useDialogueStore((s) => s.setSearchQuery);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   // 進入此 Tab 或 projectDir 變動 → 載入索引
   useEffect(() => {
@@ -21,6 +34,16 @@ const DialogueTab: React.FC = () => {
     if (projectDir) void loadProjectIndex();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectDir]);
+
+  // 搜尋 debounce
+  useEffect(() => {
+    if (!projectDir) return;
+    const handler = setTimeout(() => {
+      void searchInProject(searchQuery);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, projectDir]);
 
   if (!projectDir) {
     return (
@@ -39,21 +62,38 @@ const DialogueTab: React.FC = () => {
   }
 
   const idx = indexByProject[projectDir];
-  const sessionCount = idx?.sessions.length ?? 0;
+  const sessions = idx?.sessions ?? [];
 
   return (
     <div className="dialogue-tab">
       <div className="dialogue-tab__list">
-        {/* 後續 task 放 SessionList */}
-        <div style={{ padding: 12, fontSize: 12, color: 'var(--color-text-muted, #6b7280)' }}>
-          {loadingIndex ? '載入中…' : `共 ${sessionCount} 個 session`}
-        </div>
+        <SessionList
+          sessions={sessions}
+          selectedId={selectedSessionId}
+          onSelect={(id) => setSelected(id)}
+          onRequestDelete={(id) => setPendingDeleteId(id)}
+          filteredIds={searchResults?.sessionIds ?? null}
+          searchTruncated={searchResults?.truncated ?? false}
+          query={searchQuery}
+          onQueryChange={(q) => setSearchQuery(q)}
+        />
       </div>
       <div className="dialogue-tab__view">
         <div className="dialogue-tab__empty">
-          尚未選擇 session
+          {loadingIndex
+            ? '載入中…'
+            : selectedSessionId
+            ? '（SessionView 待下一個 task 實作）'
+            : '← 從左側選擇一個對話'}
         </div>
       </div>
+      {/* 刪除確認視窗於後續 task（Task 11）接上；暫存 state 先留著 */}
+      {pendingDeleteId && (
+        <div
+          onClick={() => setPendingDeleteId(null)}
+          style={{ display: 'none' }}
+        />
+      )}
     </div>
   );
 };

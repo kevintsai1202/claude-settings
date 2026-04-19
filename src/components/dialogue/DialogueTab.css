@@ -42,3 +42,164 @@
   margin: 0 auto 10px;
   color: var(--color-text-muted, #9ca3af);
 }
+
+/* SessionList */
+.session-list__search {
+  position: relative;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--color-border-subtle, #e5e7eb);
+  display: flex;
+  align-items: center;
+}
+
+.session-list__search-icon {
+  position: absolute;
+  left: 18px;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.session-list__search-input {
+  flex: 1;
+  padding: 6px 26px 6px 28px;
+  font-size: 12px;
+  border: 1px solid var(--color-border-subtle, #d1d5db);
+  border-radius: 6px;
+  background: var(--color-surface-alt, #fafafa);
+  outline: none;
+}
+
+.session-list__search-input:focus {
+  border-color: var(--color-accent, #3b82f6);
+  background: var(--color-surface, #fff);
+}
+
+.session-list__search-clear {
+  position: absolute;
+  right: 18px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-muted, #9ca3af);
+  padding: 2px;
+}
+
+.session-list__notice {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--color-warning, #b45309);
+  background: rgba(180, 83, 9, 0.08);
+  border-bottom: 1px solid var(--color-border-subtle, #e5e7eb);
+}
+
+.session-list__empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted, #6b7280);
+  line-height: 1.6;
+}
+
+.session-list__scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.session-list__group {
+  padding: 2px 0 6px;
+}
+
+.session-list__group-title {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-list__group-count {
+  background: var(--color-surface-alt, #f3f4f6);
+  color: var(--color-text-muted, #6b7280);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.session-list__card {
+  width: calc(100% - 16px);
+  margin: 2px 8px;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  color: inherit;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+
+.session-list__card:hover {
+  background: var(--color-hover, #f3f4f6);
+}
+
+.session-list__card--active {
+  background: var(--color-accent-soft, rgba(59, 130, 246, 0.1));
+  border-color: var(--color-accent, #3b82f6);
+}
+
+.session-list__card-row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text, #111);
+}
+
+.session-list__card-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.session-list__card-count {
+  color: var(--color-text-muted, #6b7280);
+}
+
+.session-list__badge {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.session-list__card-del {
+  margin-left: auto;
+  opacity: 0;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: var(--color-text-muted, #9ca3af);
+  display: inline-flex;
+}
+
+.session-list__card:hover .session-list__card-del,
+.session-list__card-del:focus-visible {
+  opacity: 1;
+}
+
+.session-list__card-del:hover {
+  color: var(--color-danger, #dc2626);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.session-list__card-preview {
+  font-size: 12px;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
