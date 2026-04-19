@@ -424,6 +424,7 @@ export type TabId =
   | 'skills'
   | 'rules'
   | 'memory'
+  | 'dialogue'
   | 'statusline'
   | 'advanced'
   | 'global'
