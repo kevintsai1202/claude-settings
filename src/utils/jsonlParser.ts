@@ -13,11 +13,20 @@ import type {
   SessionMeta,
 } from '../types/dialogue';
 
+/** 首則 prompt 預覽最大長度（超過會在尾端加上 …） */
+const PROMPT_PREVIEW_MAX = 60;
+
+/** 將字串 trim 後截斷為 PROMPT_PREVIEW_MAX 長度，超過則尾端附 … */
+const truncateForPreview = (s: string): string => {
+  const trimmed = s.trim();
+  return trimmed.length > PROMPT_PREVIEW_MAX
+    ? trimmed.slice(0, PROMPT_PREVIEW_MAX - 1) + '…'
+    : trimmed;
+};
+
 /** Session 摘要結果（供 SessionList 使用） */
 export interface SessionSummary {
   meta: Omit<SessionMeta, 'filePath' | 'fileSize' | 'sessionId'>;
-  /** 解析失敗行數（>0 時於 raw 模式提示） */
-  parseErrors: number;
 }
 
 /**
@@ -86,8 +95,7 @@ const extractFirstUserPrompt = (events: DialogueEvent[]): string => {
     const content = ev.message.content;
     // 純字串
     if (typeof content === 'string') {
-      // 若整段是 tool_result 的序列化（極少見），跳過
-      return content.trim().slice(0, 60);
+      return truncateForPreview(content);
     }
     // 陣列 content：取第一個 text block 且不是 tool_result
     if (Array.isArray(content)) {
@@ -96,7 +104,7 @@ const extractFirstUserPrompt = (events: DialogueEvent[]): string => {
           (b as ContentBlock).type === 'text' &&
           typeof (b as { text?: unknown }).text === 'string',
       );
-      if (textBlock) return textBlock.text.trim().slice(0, 60);
+      if (textBlock) return truncateForPreview(textBlock.text);
       // 若首個 user 訊息只含 tool_result，繼續找下一筆 user
     }
   }
@@ -136,7 +144,6 @@ export const summarizeSession = (events: DialogueEvent[]): SessionSummary => {
       hasCompaction,
       hasSubagent,
     },
-    parseErrors: 0,
   };
 };
 
